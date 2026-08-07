@@ -1,0 +1,70 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// A privacy-preserving counter contract.
+//
+// The count itself is public on the ledger (anyone can read it from the indexer),
+// but only someone who can supply the matching secret key via the `ownerKey` witness
+// may increment, decrement, or reset it. The owner's identity is never published —
+// only a deterministic commitment derived from their secret key is stored on-chain.
+
+// Owner commitment: persistentHash("counter:owner:" || sk)
+export ledger owner: Bytes<32>;
+
+// Public count value
+export ledger count: Uint<64>;
+
+// Replay-protection round counter (also keeps owner identity unlinkable across resets)
+export ledger round: Counter;
+
+constructor(ownerSecret: Bytes<32>, initialCount: Uint<64>) {
+    round.increment(1);
+    owner = disclose(publicKey(ownerSecret));
+    count = disclose(initialCount);
+}
+
+// Private witness: caller supplies their secret key from off-chain private state.
+// The value never appears on-chain or in any generated proof.
+witness secretKey(): Bytes<32>;
+
+// Derive a deterministic on-chain identity from a secret key and the current round.
+export circuit publicKey(sk: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>(
+        [pad(32, "counter:owner:"), round as Bytes<32>, sk]);
+}
+
+// Increment the count by 1. Only the owner may call this.
+export circuit increment(): [] {
+    const sk = secretKey();
+    const pk = publicKey(sk);
+    assert(owner == pk, "increment: caller is not the owner");
+    count = disclose(count + 1 as Uint<64>);
+}
+
+// Decrement the count by 1. Only the owner may call this.
+export circuit decrement(): [] {
+    const sk = secretKey();
+    const pk = publicKey(sk);
+    assert(owner == pk, "decrement: caller is not the owner");
+    count = disclose(count - 1);
+}
+
+// Reset count to zero and rotate the round so the owner commitment changes.
+// Only the current owner may reset. After resetting, the owner commitment is
+// updated so the same owner can continue to operate under the new round.
+export circuit reset(): [] {
+    const sk = secretKey();
+    const pk = publicKey(sk);
+    assert(owner == pk, "reset: caller is not the owner");
+    count = disclose(0 as Uint<64>);
+    round.increment(1);
+    // Re-derive the owner commitment under the new round so the same secret
+    // key holder can keep calling increment / decrement / reset going forward.
+    owner = disclose(publicKey(sk));
+}
+
+// Public read of the current count. No auth required — it's on the public ledger.
+export circuit get(): Uint<64> {
+    return count;
+}
