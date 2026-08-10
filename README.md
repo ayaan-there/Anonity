@@ -208,6 +208,63 @@ The `secretKey()` witness is the only private input. It is read from the contrac
 
 ---
 
+## Privacy Model
+
+- **What is PUBLIC (on-chain, visible to anyone):**
+  - `count` — the current counter value (`Uint<64>`)
+  - `owner` — a public commitment derived from the owner's secret key (`persistentHash("counter:owner:" || round || sk)`)
+  - `round` — the rotation counter (incremented on each `reset()`)
+  - Contract address and circuit entry points (`increment`, `decrement`, `reset`, `get`)
+
+- **What is PRIVATE (private witness, never on-chain):**
+  - `secretKey()` — the 32-byte owner secret supplied as a circuit witness
+  - Read from off-chain private state (`privateState.secretKey`) at call time
+  - Never disclosed in any proof, transaction, or ledger entry
+
+- **What the user PROVES without revealing:**
+  - That the caller holds the same secret key that produced the on-chain `owner` commitment (`assert(owner == publicKey(sk))`)
+  - That `count` transitions (increment / decrement / reset) are authorised by that owner — no identity, no public key, just the ZK proof of possession
+  - On `reset()`: the new `owner` commitment is derived from the same secret under a new `round`, preventing linkage between pre- and post-reset owner commitments
+
+---
+
+## Screenshots
+
+### Screenshot 1 — Compilation
+
+```bash
+cd /mnt/d/New\ Moon\ to\ Full/mn-demo
+npm run compile:counter
+```
+
+![Compilation output](./screenshots/01-compile.png)
+
+### Screenshot 2 — Tests
+
+```bash
+npm test
+```
+
+![Test output](./screenshots/02-tests.png)
+
+### Screenshot 3 — Deployment
+
+```bash
+npm run deploy:counter -- --network preview
+```
+
+![Deployment output](./screenshots/03-deploy.png)
+
+### Screenshot 4 — Repository structure
+
+```bash
+find contracts/counter.compact contracts/managed/counter tests/counter.test.ts README.md package.json -maxdepth 3 | sort
+```
+
+![Repository structure](./screenshots/04-repo.png)
+
+---
+
 ## License
 
 MIT — see `package.json`.
