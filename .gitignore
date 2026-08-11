@@ -15,8 +15,17 @@ build/
 .env.test.local
 .env.production.local
 
-# Contract artifacts
-contracts/managed/
+# Contract compiler output — ignore everything by default, but track the
+# counter compiled artifacts (keys, zkir, contract JS, compiler JSON) so
+# reviewers can verify successful compilation. Pattern: ignore children
+# of managed/ but re-include counter/ and everything under it.
+contracts/managed/*
+!contracts/managed/counter/
+contracts/managed/counter/*
+!contracts/managed/counter/keys/
+!contracts/managed/counter/zkir/
+!contracts/managed/counter/contract/
+!contracts/managed/counter/compiler/
 
 # Deployment info
 deployment.json
