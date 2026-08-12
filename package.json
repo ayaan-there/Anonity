@@ -6,21 +6,15 @@
   "author": "",
   "license": "MIT",
   "scripts": {
-    "compile": "compact compile contracts/hello-world.compact contracts/managed/hello-world",
-    "compile:counter": "compact compile contracts/counter.compact contracts/managed/counter",
+    "compile": "compact compile contracts/counter.compact contracts/managed/counter",
     "build": "npx tsc --noEmit || true",
-    "setup": "npx tsx src/setup.ts",
-    "deploy": "npx tsx src/deploy.ts",
-    "deploy:counter": "npx tsx src/deploy-counter.ts",
-    "test:counter": "tsx --test tests/counter.test.ts",
-    "cli": "npx tsx src/cli.ts",
+    "deploy": "npx tsx src/deploy-counter.ts",
+    "test": "npx tsx --test tests/counter.test.ts",
     "check-balance": "npx tsx src/check-balance.ts",
     "network": "npx tsx src/network.ts",
     "proof-server:start": "docker compose up -d",
     "proof-server:stop": "docker compose down",
-    "clean": "rm -rf contracts/managed .midnight-state.json .midnight-wallet-state",
-    "test": "npx tsx --test tests/counter.test.ts",
-    "test:e2e": "tsx scripts/e2e-check.ts"
+    "clean": "rm -rf contracts/managed .midnight-state.json .midnight-wallet-state"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0",
