@@ -204,7 +204,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
               className="mono"
               style={{
                 fontSize: 12,
-                color: result && !loading ? 'var(--color-primary)' : 'var(--color-secondary)',
+                color: result && !loading ? '#045425' : 'var(--color-on-surface-variant)',
               }}
             >
               {resultStatus}
@@ -420,7 +420,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="caps" style={{ color: 'var(--color-primary)' }}>
+              <span className="caps" style={{ color: '#045425' }}>
                 CIRCUIT
               </span>
               <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>
