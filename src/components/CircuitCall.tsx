@@ -33,6 +33,9 @@ interface CircuitCallProps {
   refreshCount: () => void;
   loading: boolean;
   result: string | null;
+  lastCircuit: string | null;
+  lastTxId: string | null;
+  lastBlock: string | null;
   error: string | null;
   isConnected: boolean;
   isConnecting: boolean;
@@ -41,8 +44,6 @@ interface CircuitCallProps {
   isReady: boolean;
   connect: () => void;
 }
-
-type StepState = 'pending' | 'active' | 'done';
 
 const CircuitCall: React.FC<CircuitCallProps> = ({
   network,
@@ -54,6 +55,9 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
   refreshCount,
   loading,
   result,
+  lastCircuit,
+  lastTxId,
+  lastBlock,
   error,
   isConnected,
   isConnecting,
@@ -64,10 +68,6 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
 }) => {
   const privateUnlocked = isConnected;
   const proofInProgress = loading && isConnected;
-
-  const step1: StepState = isConnected ? 'done' : 'pending';
-  const step2: StepState = proofInProgress ? 'active' : isConnected ? 'done' : 'pending';
-  const step3: StepState = result && !loading ? 'done' : 'pending';
 
   const resultStatus = !isConnected
     ? 'NOT VERIFIED'
@@ -254,21 +254,6 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
                 }
                 mono
               />
-              {result && !loading && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    paddingTop: 12,
-                    borderTop: '1px solid var(--color-border)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 11,
-                    color: 'var(--color-on-surface-variant)',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  TX {result}
-                </div>
-              )}
             </div>
 
             <div
@@ -415,116 +400,51 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
           </div>
         </div>
 
-        <div
-          style={{
-            marginTop: 32,
-            width: '100%',
-            maxWidth: '60rem',
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            border: '1px solid var(--color-border)',
-            background: 'var(--color-bg)',
-            padding: '12px 16px',
-            gap: 16,
-            position: 'relative',
-            zIndex: 1,
-          }}
-          className="flow-wrap"
-        >
+        {lastCircuit && (
           <div
-            className={`flex-item step-${step1}`}
+            className="fade-in flow-wrap"
             style={{
-              flex: 1,
+              marginTop: 32,
+              width: '100%',
+              maxWidth: '60rem',
               display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              justifyContent: 'flex-start',
-              gap: 8,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              padding: '12px 16px',
+              gap: 16,
+              position: 'relative',
+              zIndex: 1,
             }}
           >
-            <span
-              className="caps"
-              style={{
-                color: step1 === 'done' ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
-              }}
-            >
-              01 PRIVATE INPUT
-            </span>
-            <span
-              className="mono"
-              style={{ fontSize: 10, color: 'var(--color-on-surface-variant)' }}
-            >
-              {step1 === 'done' ? '(WITNESS)' : '████████'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="caps" style={{ color: 'var(--color-primary)' }}>
+                CIRCUIT
+              </span>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>
+                {lastCircuit}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="caps" style={{ color: 'var(--color-on-surface-variant)' }}>
+                TX
+              </span>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>
+                {lastTxId ? truncateHex(lastTxId, 14, 6) : '—'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="caps" style={{ color: 'var(--color-on-surface-variant)' }}>
+                BLOCK
+              </span>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>
+                {lastBlock ?? '—'}
+              </span>
+            </div>
           </div>
-          <div
-            className="flow-arrow"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24 }}
-          >
-            <span className="mono" style={{ color: 'var(--color-on-surface-variant)', fontSize: 12 }}>
-              ↓
-            </span>
-          </div>
-          <div
-            className={`flex-item step-${step2} ${step2 === 'active' ? 'step-pulse' : ''}`}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-          >
-            <span
-              className="caps step-label"
-              style={{
-                color: step2 === 'done' || step2 === 'active' ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
-              }}
-            >
-              02 LOCAL PROOF
-            </span>
-            <span
-              className="mono"
-              style={{ fontSize: 10, color: 'var(--color-on-surface-variant)' }}
-            >
-              {step2 === 'active' ? '(GENERATING)' : step2 === 'done' ? '(BUILT)' : '(IDLE)'}
-            </span>
-          </div>
-          <div
-            className="flow-arrow"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24 }}
-          >
-            <span className="mono" style={{ color: 'var(--color-on-surface-variant)', fontSize: 12 }}>
-              ↓
-            </span>
-          </div>
-          <div
-            className={`flex-item step-${step3}`}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: 8,
-            }}
-          >
-            <span
-              className="caps"
-              style={{
-                color: step3 === 'done' ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
-              }}
-            >
-              03 PUBLIC RESULT
-            </span>
-            <span
-              className="mono"
-              style={{ fontSize: 12, color: 'var(--color-on-surface-variant)' }}
-            >
-              {step3 === 'done' ? '✓' : '—'}
-            </span>
-          </div>
-        </div>
+        )}
 
         {error && (
           <div

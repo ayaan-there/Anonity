@@ -27,6 +27,9 @@ const App: React.FC = () => {
     refreshCount,
     loading,
     result,
+    lastCircuit,
+    lastTxId,
+    lastBlock,
     error,
     clearError,
   } = useMidnight();
@@ -42,34 +45,11 @@ const App: React.FC = () => {
   const isDetecting = walletState === 'detecting';
   const noWallet = walletState === 'no-wallet';
   const isReady = walletState === 'ready' || isConnected;
-  const loadingBusy = loading && isConnected;
-
-  type StepState = 'pending' | 'active' | 'done';
-  const step2: StepState = loadingBusy ? 'active' : isConnected ? 'done' : 'pending';
 
   const SidebarStatus: React.FC = () => (
     <>
-      <h4
-        className="caps-sm"
-        style={{
-          color: 'var(--color-on-surface-variant)',
-          margin: '0 0 12px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-        }}
-      >
-        PRIVACY MODEL
-      </h4>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        <PrivacyRow label="PUBLIC" filled />
-        <PrivacyRow label="PRIVATE" filled={isConnected} />
-        <PrivacyRow label="PROOF" filled={step2 === 'done' || step2 === 'active'} />
-        <PrivacyRow label="DISCLOSURE" filled={isConnected} value={isConnected ? 'NONE' : '–'} />
-      </ul>
-
       <div
         style={{
-          marginTop: 32,
           padding: 12,
           border: '1px solid var(--color-border)',
           background: 'var(--color-surface)',
@@ -126,7 +106,6 @@ const App: React.FC = () => {
           STACK
         </h4>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          <StackRow label="CHAIN">MIDNIGHT {NETWORK.toUpperCase()}</StackRow>
           <StackRow label="LANG">COMPACT</StackRow>
           <StackRow label="WALLET">LACE</StackRow>
           <StackRow label="PROOF">LOCAL ZK</StackRow>
@@ -146,15 +125,9 @@ const App: React.FC = () => {
       }}
     >
       <WalletConnect
-        walletState={walletState}
         address={address}
         network={NETWORK}
         isConnected={isConnected}
-        isConnecting={isConnecting}
-        isDetecting={isDetecting}
-        noWallet={noWallet}
-        isReady={isReady}
-        connect={connect}
         disconnect={disconnect}
       />
 
@@ -179,6 +152,9 @@ const App: React.FC = () => {
           refreshCount={refreshCount}
           loading={loading}
           result={result}
+          lastCircuit={lastCircuit}
+          lastTxId={lastTxId}
+          lastBlock={lastBlock}
           error={error}
           isConnected={isConnected}
           isConnecting={isConnecting}
@@ -229,12 +205,7 @@ const App: React.FC = () => {
         className="footer-row"
       >
         <div className="caps" style={{ color: 'var(--color-secondary)' }}>
-          MIDNIGHT | COMPACT | LACE | PRIVATE PROOF
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span className="caps" style={{ color: 'var(--color-on-tertiary-fixed-variant)' }}>
-            ANONITY / L2
-          </span>
+          ANONITY / L2 SUBMISSION
         </div>
       </footer>
 
@@ -259,58 +230,11 @@ const App: React.FC = () => {
             flex-direction: column !important;
             align-items: flex-start !important;
           }
-          .flow-arrow {
-            transform: rotate(90deg);
-            width: 100% !important;
-          }
-          .flex-item {
-            flex: 0 0 auto !important;
-            width: 100% !important;
-            justify-content: flex-start !important;
-          }
         }
       `}</style>
     </div>
   );
 };
-
-const PrivacyRow: React.FC<{ label: string; filled: boolean; value?: string }> = ({
-  label,
-  filled,
-  value,
-}) => (
-  <li
-    style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '8px 0',
-      borderBottom: '1px solid #222',
-    }}
-  >
-    <span className="caps" style={{ fontSize: 12, color: 'var(--color-secondary)' }}>
-      {label}
-    </span>
-    {value ? (
-      <span className="mono" style={{ fontSize: 11, color: 'var(--color-on-surface-variant)' }}>
-        {value}
-      </span>
-    ) : (
-      <span
-        className="mono"
-        style={{
-          fontSize: 14,
-          lineHeight: 1,
-          color: filled ? '#00d97e' : 'var(--color-on-tertiary-fixed-variant)',
-          opacity: filled ? 1 : 0.55,
-          transition: 'color 200ms var(--ease-out), opacity 200ms var(--ease-out)',
-        }}
-      >
-        {filled ? '✓' : '–'}
-      </span>
-    )}
-  </li>
-);
 
 const StackRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <li

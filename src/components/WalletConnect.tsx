@@ -4,36 +4,18 @@ const truncateHex = (s: string, head = 14, tail = 6): string =>
   s.length <= head + tail + 3 ? s : `${s.slice(0, head)}…${s.slice(-tail)}`;
 
 interface WalletConnectProps {
-  walletState: string;
   address: string | null;
   network: string;
   isConnected: boolean;
-  isConnecting: boolean;
-  isDetecting: boolean;
-  noWallet: boolean;
-  isReady: boolean;
-  connect: () => void;
   disconnect: () => void;
 }
 
 const WalletConnect: React.FC<WalletConnectProps> = ({
-  walletState,
   address,
   network,
   isConnected,
-  isConnecting,
-  isDetecting,
-  noWallet,
-  isReady,
-  connect,
   disconnect,
 }) => {
-  const actionLabel = isConnecting
-    ? 'CONNECTING…'
-    : isDetecting || noWallet
-      ? 'AWAITING LACE'
-      : 'CONNECT LACE';
-
   return (
     <nav
       style={{
@@ -87,9 +69,9 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
               background: isConnected ? 'var(--color-primary)' : 'var(--color-secondary-container)',
             }}
           />
-          MIDNIGHT / {network.toUpperCase()}
+          {network.toUpperCase()}
         </span>
-        {isConnected ? (
+        {isConnected && (
           <button
             className="btn-secondary"
             onClick={disconnect}
@@ -108,23 +90,6 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
             </span>
             <span style={{ opacity: 0.6 }}>·</span>
             <span>DISCONNECT</span>
-          </button>
-        ) : (
-          <button
-            className="btn-secondary"
-            onClick={connect}
-            disabled={!isReady || noWallet}
-          >
-            {isDetecting || isConnecting ? (
-              <>
-                <span className="spinner" style={{ marginRight: 8 }} />
-                {actionLabel}
-              </>
-            ) : noWallet ? (
-              'NO WALLET'
-            ) : (
-              actionLabel
-            )}
           </button>
         )}
       </div>

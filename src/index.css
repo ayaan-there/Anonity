@@ -215,15 +215,6 @@ button { font-family: inherit; }
   to { transform: rotate(360deg); }
 }
 
-.step-active .step-label { color: var(--color-primary); }
-.step-pulse {
-  animation: pulse 1.6s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-
 .fade-in {
   animation: fadeIn 240ms var(--ease-out);
 }
@@ -260,7 +251,6 @@ button { font-family: inherit; }
     transform: none;
   }
   .fade-in { animation: none; opacity: 1; transform: none; }
-  .step-pulse { animation: none; opacity: 1; }
   .hero-dither {
     animation: none !important;
     opacity: 0.04 !important;

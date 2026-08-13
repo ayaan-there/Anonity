@@ -203,6 +203,9 @@ export interface UseMidnightReturn {
   refreshCount: () => Promise<void>;
   loading: boolean;
   result: string | null;
+  lastCircuit: string | null;
+  lastTxId: string | null;
+  lastBlock: string | null;
   error: string | null;
   clearError: () => void;
 }
@@ -213,6 +216,9 @@ export function useMidnight(): UseMidnightReturn {
   const [count, setCount] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [lastCircuit, setLastCircuit] = useState<string | null>(null);
+  const [lastTxId, setLastTxId] = useState<string | null>(null);
+  const [lastBlock, setLastBlock] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const connectedAPIRef = useRef<ConnectedAPI | null>(null);
@@ -345,11 +351,14 @@ export function useMidnight(): UseMidnightReturn {
     setLoading(true);
     setError(null);
     setResult(null);
+    setLastCircuit(name);
     try {
       const finalized = await contract.callTx[name]();
       const txId = finalized?.public?.txId;
       const block = finalized?.public?.blockHeight;
       setResult(`txId=${txId ?? ''}${block != null ? ` block=${block}` : ''}`);
+      setLastTxId(txId ?? null);
+      setLastBlock(block != null ? String(block) : null);
       try {
         const addr = getDefaultContractAddress();
         if (addr) {
@@ -359,9 +368,9 @@ export function useMidnight(): UseMidnightReturn {
       } catch { /* ignore */ }
     } catch (e: any) {
       const msg = e?.message ?? String(e);
-      const full = e?.stack ? `${msg}\n${e.stack}` : msg;
-      console.error(`[circuit:${name}]`, e);
-      setError(`Circuit "${name}" failed: ${full}`);
+      setError(`Circuit "${name}" failed: ${msg}`);
+      setLastTxId(null);
+      setLastBlock(null);
     } finally {
       setLoading(false);
     }
@@ -405,6 +414,9 @@ export function useMidnight(): UseMidnightReturn {
     refreshCount,
     loading,
     result,
+    lastCircuit,
+    lastTxId,
+    lastBlock,
     error,
     clearError,
   };
