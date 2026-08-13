@@ -17,8 +17,14 @@ export default defineConfig({
     alias: {
       '@counter': fileURLToPath(new URL('./contracts/managed/counter/contract/index.js', import.meta.url)),
     },
+    dedupe: [
+      '@midnight-ntwrk/compact-runtime',
+      '@midnight-ntwrk/onchain-runtime-v3',
+      '@midnight-ntwrk/ledger-v8',
+      '@midnight-ntwrk/midnight-js-protocol',
+    ],
   },
   optimizeDeps: {
-    exclude: ['@midnight-ntwrk/midnight-js-*'],
+    exclude: ['@midnight-ntwrk/midnight-js-*', '@midnight-ntwrk/compact-runtime', '@midnight-ntwrk/onchain-runtime-v3', '@midnight-ntwrk/ledger-v8'],
   },
 });
