@@ -354,7 +354,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
                   padding: '8px 0',
                 }}
               >
-                CONNECT LACE ABOVE TO UNLOCK THE CIRCUIT
+                CONNECT YOUR WALLET ABOVE TO UNLOCK THE CIRCUIT
               </div>
             ) : (
               <>

@@ -152,7 +152,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
               className="btn-prove"
               onClick={onConnect}
               disabled={!ready || connecting}
-              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
               {(connecting || detecting) && <span className="spinner" />}
               {actionLabel}
