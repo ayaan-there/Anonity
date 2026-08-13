@@ -77,7 +77,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
         ? 'VERIFIED'
         : 'READY';
 
-  const resultColor = result && !loading ? '#045425' : 'var(--color-secondary)';
+  const resultColor = result && !loading ? '#00d97e' : 'var(--color-secondary)';
 
   const actionLabel = isConnecting
     ? 'CONNECTING…'
@@ -204,7 +204,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
               className="mono"
               style={{
                 fontSize: 12,
-                color: result && !loading ? '#045425' : 'var(--color-on-surface-variant)',
+                color: result && !loading ? '#00d97e' : 'var(--color-on-surface-variant)',
               }}
             >
               {resultStatus}
@@ -420,7 +420,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="caps" style={{ color: '#045425' }}>
+              <span className="caps" style={{ color: '#00d97e' }}>
                 CIRCUIT
               </span>
               <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>
