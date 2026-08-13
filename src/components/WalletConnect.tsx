@@ -12,9 +12,18 @@ interface WalletConnectProps {
   noWallet: boolean;
   ready: boolean;
   error: string | null;
+  availableWallets: string[];
+  selectedWalletId: string | null;
+  onSelectWallet: (id: string) => void;
   disconnect: () => void;
   onConnect: () => void;
 }
+
+const walletDisplayName = (id: string): string => {
+  if (id.toLowerCase() === '1am') return '1AM';
+  if (id.toLowerCase().includes('lace')) return 'Lace';
+  return id.length > 16 ? `${id.slice(0, 10)}…${id.slice(-4)}` : id;
+};
 
 const WalletConnect: React.FC<WalletConnectProps> = ({
   address,
@@ -25,14 +34,19 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
   noWallet,
   ready,
   error,
+  availableWallets,
+  selectedWalletId,
+  onSelectWallet,
   disconnect,
   onConnect,
 }) => {
   const actionLabel = connecting
     ? 'CONNECTING…'
     : detecting || noWallet
-      ? 'AWAITING LACE'
-      : 'CONNECT LACE';
+      ? 'AWAITING WALLET'
+      : 'CONNECT WALLET';
+
+  const showPicker = !isConnected && availableWallets.length > 1;
 
   return (
     <nav
@@ -110,15 +124,40 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
             <span style={{ color: 'var(--color-error)' }}>DISCONNECT</span>
           </button>
         ) : (
-          <button
-            className="btn-prove"
-            onClick={onConnect}
-            disabled={!ready || connecting}
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            {(connecting || detecting) && <span className="spinner" />}
-            {actionLabel}
-          </button>
+          <>
+            {showPicker && (
+              <select
+                className="caps"
+                aria-label="Select wallet"
+                value={selectedWalletId ?? availableWallets[0]}
+                onChange={(e) => onSelectWallet(e.target.value)}
+                style={{
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-on-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 4,
+                  padding: '8px 10px',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                }}
+              >
+                {availableWallets.map((id) => (
+                  <option key={id} value={id}>
+                    {walletDisplayName(id)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              className="btn-prove"
+              onClick={onConnect}
+              disabled={!ready || connecting}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              {(connecting || detecting) && <span className="spinner" />}
+              {actionLabel}
+            </button>
+          </>
         )}
       </div>
       {!isConnected && error && (

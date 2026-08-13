@@ -25,6 +25,7 @@
     "@midnight-ntwrk/compact-runtime": "0.16.0",
     "@midnight-ntwrk/dapp-connector-api": "^4.0.0",
     "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
+    "@midnight-ntwrk/midnight-js-dapp-connector-proof-provider": "^4.1.1",
     "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "4.1.1",
     "@midnight-ntwrk/midnight-js-http-client-proof-provider": "4.1.1",
     "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.1.1",
@@ -37,12 +38,12 @@
     "@midnight-ntwrk/wallet-sdk": "1.2.0",
     "buffer": "^6.0.3",
     "fp-ts": "^2.16.11",
+    "motion": "^13.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "rxjs": "^7.8.2",
     "semver": "^7.7.4",
-    "ws": "^8.21.1",
-    "motion": "^13.1.0"
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
@@ -66,5 +67,10 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "keywords": ["midnight", "blockchain", "zero-knowledge", "privacy"]
+  "keywords": [
+    "midnight",
+    "blockchain",
+    "zero-knowledge",
+    "privacy"
+  ]
 }

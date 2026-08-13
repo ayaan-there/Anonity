@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
+import { dappConnectorProofProvider } from '@midnight-ntwrk/midnight-js-dapp-connector-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
-import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
+import type { ProofProvider, UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import { toHex, fromHex } from '@midnight-ntwrk/midnight-js-utils';
-import { Binding, Proof, SignatureEnabled, Transaction, type FinalizedTransaction, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
+import { Binding, CostModel, Proof, SignatureEnabled, Transaction, type FinalizedTransaction, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { InitialAPI, ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
 import semver from 'semver';
 import { firstValueFrom, interval, map, filter, take, timeout, concatMap, catchError, throwError } from 'rxjs';
@@ -89,7 +90,7 @@ type WalletState = 'detecting' | 'no-wallet' | 'ready' | 'connecting' | 'connect
 type Providers = {
   privateStateProvider: ReturnType<typeof inMemoryPrivateStateProvider>;
   zkConfigProvider: FetchZkConfigProvider<string>;
-  proofProvider: ReturnType<typeof httpClientProofProvider>;
+  proofProvider: ProofProvider;
   publicDataProvider: ReturnType<typeof indexerPublicDataProvider>;
   walletProvider: {
     getCoinPublicKey: () => string;
@@ -112,29 +113,48 @@ const getDefaultContractAddress = (): string | null => {
   return v.trim();
 };
 
-const getFirstCompatibleWallet = (): InitialAPI | undefined => {
+type CompatibleWallet = { id: string; api: InitialAPI };
+
+const WALLET_PREFERENCE_ORDER: readonly string[] = ['1am'];
+
+const getCompatibleWallets = (): CompatibleWallet[] => {
   const g = globalThis as any;
   const midnight = g.window?.midnight ?? g.midnight;
-  if (!midnight) return undefined;
-  return Object.values(midnight).find(
-    (wallet): wallet is InitialAPI =>
-      !!wallet &&
-      typeof wallet === 'object' &&
-      'apiVersion' in wallet &&
-      semver.satisfies((wallet as any).apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
-  ) as InitialAPI | undefined;
+  if (!midnight) return [];
+  const wallets = Object.entries(midnight as Record<string, unknown>)
+    .filter(
+      (entry): entry is [string, InitialAPI] =>
+        !!entry[1] &&
+        typeof entry[1] === 'object' &&
+        'apiVersion' in entry[1] &&
+        semver.satisfies((entry[1] as InitialAPI).apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
+    )
+    .map(([id, api]) => ({ id, api }));
+  const rank = (id: string): number => {
+    const idx = WALLET_PREFERENCE_ORDER.indexOf(id.toLowerCase());
+    return idx === -1 ? WALLET_PREFERENCE_ORDER.length : idx;
+  };
+  return wallets.sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
 };
 
-const connectToWallet = (netId: string): Promise<ConnectedAPI> =>
+const connectToWallet = (netId: string, walletId?: string | null): Promise<ConnectedAPI> =>
   firstValueFrom(
     pipe(
       interval(WALLET_DETECT_INTERVAL_MS),
-      map(() => getFirstCompatibleWallet()),
+      map(() => {
+        const wallets = getCompatibleWallets();
+        if (wallets.length === 0) return undefined;
+        const picked = walletId ? wallets.find((w) => w.id === walletId) : undefined;
+        return (picked ?? wallets[0]).api;
+      }),
       filter((api): api is InitialAPI => !!api),
       take(1),
       timeout({
         first: WALLET_DETECT_TIMEOUT_MS,
-        with: () => throwError(() => new Error('No compatible Midnight wallet detected. Install Lace wallet.')),
+        with: () =>
+          throwError(() =>
+            new Error('No compatible Midnight wallet detected. Install Lace or 1AM.'),
+          ),
       }),
       concatMap(async (initialAPI) => {
         const connected = await initialAPI!.connect(netId);
@@ -142,7 +162,7 @@ const connectToWallet = (netId: string): Promise<ConnectedAPI> =>
       }),
       timeout({
         first: WALLET_CONNECT_TIMEOUT_MS,
-        with: () => throwError(() => new Error('Lace wallet did not respond to connect request.')),
+        with: () => throwError(() => new Error('Wallet did not respond to the connect request.')),
       }),
       catchError((error) =>
         throwError(() =>
@@ -159,15 +179,6 @@ const initializeProviders = async (
   const networkId = getNetworkId();
   setNetworkId(networkId);
 
-  let proofServerUri = config.proverServerUri;
-  const LOCAL_PROVER = 'http://127.0.0.1:6300';
-  if (proofServerUri && proofServerUri.includes('proof-server.preprod.midnight.network')) {
-    proofServerUri = LOCAL_PROVER;
-  }
-  if (!proofServerUri) {
-    proofServerUri = LOCAL_PROVER;
-  }
-
   const shieldedAddresses = await connectedAPI.getShieldedAddresses();
 
   const zkConfigProvider = new FetchZkConfigProvider<string>(
@@ -176,6 +187,25 @@ const initializeProviders = async (
   );
 
   const privateStateProvider = inMemoryPrivateStateProvider<string, CounterPrivateState>();
+
+  let proofProvider: ProofProvider;
+  if (typeof connectedAPI.getProvingProvider === 'function') {
+    proofProvider = await dappConnectorProofProvider(
+      connectedAPI,
+      zkConfigProvider,
+      CostModel.initialCostModel(),
+    );
+  } else {
+    let proofServerUri = config.proverServerUri;
+    const LOCAL_PROVER = 'http://127.0.0.1:6300';
+    if (proofServerUri && proofServerUri.includes('proof-server.preprod.midnight.network')) {
+      proofServerUri = LOCAL_PROVER;
+    }
+    if (!proofServerUri) {
+      proofServerUri = LOCAL_PROVER;
+    }
+    proofProvider = httpClientProofProvider(proofServerUri, zkConfigProvider);
+  }
 
   const walletProvider = {
     getCoinPublicKey: () => shieldedAddresses.shieldedCoinPublicKey,
@@ -203,7 +233,7 @@ const initializeProviders = async (
   return {
     privateStateProvider,
     zkConfigProvider,
-    proofProvider: httpClientProofProvider(proofServerUri, zkConfigProvider),
+    proofProvider,
     publicDataProvider: indexerPublicDataProvider(config.indexerUri, config.indexerWsUri),
     walletProvider,
     midnightProvider,
@@ -213,6 +243,9 @@ const initializeProviders = async (
 export interface UseMidnightReturn {
   walletState: WalletState;
   address: string | null;
+  availableWallets: string[];
+  selectedWalletId: string | null;
+  selectWallet: (id: string) => void;
   connect: () => Promise<void>;
   disconnect: () => void;
   count: bigint | null;
@@ -232,6 +265,8 @@ export interface UseMidnightReturn {
 export function useMidnight(): UseMidnightReturn {
   const [walletState, setWalletState] = useState<WalletState>('detecting');
   const [address, setAddress] = useState<string | null>(null);
+  const [availableWallets, setAvailableWallets] = useState<string[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [count, setCount] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -279,16 +314,21 @@ export function useMidnight(): UseMidnightReturn {
     const detect = () => {
       if (cancelled) return;
       if (walletStateRef.current === 'connecting' || walletStateRef.current === 'connected') return;
-      const wallet = getFirstCompatibleWallet();
-      if (wallet) {
+      const wallets = getCompatibleWallets();
+      setAvailableWallets((prev) => {
+        const ids = wallets.map((w) => w.id);
+        return prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids;
+      });
+      if (wallets.length > 0) {
+        setSelectedWalletId((prev) => (prev && wallets.some((w) => w.id === prev) ? prev : wallets[0].id));
         if (!cancelled) setWalletState('ready');
         return;
       }
       if (!timeoutId) {
         timeoutId = setTimeout(() => {
           if (cancelled) return;
-          const w = getFirstCompatibleWallet();
-          setWalletState(w ? 'ready' : 'no-wallet');
+          const w = getCompatibleWallets();
+          setWalletState(w.length > 0 ? 'ready' : 'no-wallet');
         }, WALLET_DETECT_TIMEOUT_MS);
       }
     };
@@ -308,13 +348,13 @@ export function useMidnight(): UseMidnightReturn {
     setWalletState('connecting');
     try {
       const netId = getNetworkId();
-      const connected = await connectToWallet(netId);
+      const connected = await connectToWallet(netId, selectedWalletId);
       connectedAPIRef.current = connected;
 
       const config = await connected.getConfiguration();
       if (config.networkId && config.networkId !== netId) {
         throw new Error(
-          `Network mismatch: Lace is connected to "${config.networkId}" but this app targets "${netId}". Switch networks in Lace and try again.`,
+          `Network mismatch: wallet is connected to "${config.networkId}" but this app targets "${netId}". Switch networks in the wallet and try again.`,
         );
       }
 
@@ -352,7 +392,7 @@ export function useMidnight(): UseMidnightReturn {
         e?.type === 'DAppConnectorAPIError' &&
         (e?.code === 'Rejected' || e?.code === 'PermissionRejected');
       if (isUserRejected) {
-        setError('Connection rejected in Lace. Approve the wallet connection request and try again.');
+        setError('Connection rejected in the wallet. Approve the wallet connection request and try again.');
       } else {
         setError(e?.message ?? String(e));
       }
@@ -362,7 +402,11 @@ export function useMidnight(): UseMidnightReturn {
       providersRef.current = null;
       foundContractRef.current = null;
     }
-  }, [walletState]);
+  }, [walletState, selectedWalletId]);
+
+  const selectWallet = useCallback((id: string) => {
+    setSelectedWalletId(id);
+  }, []);
 
   const disconnect = useCallback(() => {
     connectedAPIRef.current = null;
@@ -441,6 +485,9 @@ export function useMidnight(): UseMidnightReturn {
   return {
     walletState,
     address,
+    availableWallets,
+    selectedWalletId,
+    selectWallet,
     connect,
     disconnect,
     count,

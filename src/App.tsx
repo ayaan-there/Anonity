@@ -19,6 +19,9 @@ const App: React.FC = () => {
   const {
     walletState,
     address,
+    availableWallets,
+    selectedWalletId,
+    selectWallet,
     connect,
     disconnect,
     count,
@@ -61,16 +64,16 @@ const App: React.FC = () => {
         }}
       >
         {isDetecting
-          ? 'DETECTING LACE INJECTOR…'
+          ? 'DETECTING WALLET INJECTOR…'
           : noWallet
-            ? 'NO LACE WALLET FOUND.'
+            ? 'NO WALLET FOUND.'
             : isConnected
               ? loading
                 ? 'GENERATING ZK PROOF · LOCAL PROVER.'
                 : result
                   ? 'PROOF ACCEPTED · WAITING FOR NEXT CALL.'
                   : 'WALLET READY · AWAITING CIRCUIT CALL.'
-              : 'SYSTEM READY / WAITING FOR LACE CONNECTION'}
+              : 'SYSTEM READY / WAITING FOR WALLET CONNECTION'}
       </div>
 
       {isConnected && address && (
@@ -108,7 +111,15 @@ const App: React.FC = () => {
         </h4>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           <StackRow label="LANG">COMPACT</StackRow>
-          <StackRow label="WALLET">LACE</StackRow>
+          <StackRow label="WALLET">
+            {selectedWalletId
+              ? selectedWalletId.toLowerCase() === '1am'
+                ? '1AM'
+                : selectedWalletId.toLowerCase().includes('lace')
+                  ? 'LACE'
+                  : 'DAPP CONNECTOR'
+              : 'DAPP CONNECTOR'}
+          </StackRow>
           <StackRow label="PROOF">LOCAL ZK</StackRow>
         </ul>
       </div>
@@ -134,6 +145,9 @@ const App: React.FC = () => {
         noWallet={noWallet}
         ready={isReady}
         error={error}
+        availableWallets={availableWallets}
+        selectedWalletId={selectedWalletId}
+        onSelectWallet={selectWallet}
         disconnect={disconnect}
         onConnect={connect}
       />
