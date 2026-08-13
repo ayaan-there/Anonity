@@ -77,7 +77,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
         ? 'VERIFIED'
         : 'READY';
 
-  const resultColor = result && !loading ? 'var(--color-primary)' : 'var(--color-secondary)';
+  const resultColor = result && !loading ? '#045425' : 'var(--color-secondary)';
 
   const actionLabel = isConnecting
     ? 'CONNECTING…'
@@ -145,13 +145,13 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
         className="hero-pad"
       >
         <DotField
-          dotRadius={1.4}
+          dotRadius={4}
           dotSpacing={11}
-          cursorRadius={380}
-          bulgeStrength={48}
-          glowRadius={130}
-          gradientFrom="rgba(124, 58, 237, 0.55)"
-          gradientTo="rgba(96, 165, 250, 0.30)"
+          bulgeStrength={36}
+          glowRadius={160}
+          sparkle={false}
+          waveAmplitude={0}
+          glowColor="#180332"
         />
         <div
           style={{
