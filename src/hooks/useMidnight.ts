@@ -40,6 +40,23 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
+const deepestErrorMessage = (e: unknown): string => {
+  let current: any = e;
+  const seen = new Set<unknown>();
+  let last = '';
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    for (const key of ['message', 'failure', 'error', 'reason']) {
+      const value = current[key];
+      if (typeof value === 'string' && value.length > 0 && !last.includes(value)) {
+        last = value;
+      }
+    }
+    current = current?.cause ?? current?.failure;
+  }
+  return last || (typeof e === 'string' ? e : String(e ?? 'Unexpected error'));
+};
+
 const fetchCountFromIndexer = async (contractAddress: string): Promise<bigint | null> => {
   try {
     const res = await fetch(INDEXER_GRAPHQL_URL, {
@@ -385,7 +402,8 @@ export function useMidnight(): UseMidnightReturn {
         }
       } catch { /* ignore */ }
     } catch (e: any) {
-      const msg = e?.message ?? String(e);
+      console.error(`[useMidnight] circuit "${name}" failed`, e);
+      const msg = deepestErrorMessage(e);
       setError(`Circuit "${name}" failed: ${msg}`);
       setLastTxId(null);
       setLastBlock(null);
