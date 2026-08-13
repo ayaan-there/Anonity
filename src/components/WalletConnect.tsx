@@ -66,7 +66,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: isConnected ? 'var(--color-primary)' : 'var(--color-secondary-container)',
+              background: '#b497cf',
             }}
           />
           {network.toUpperCase()}
@@ -89,7 +89,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
               {truncateHex(address ?? '', 14, 6)}
             </span>
             <span style={{ opacity: 0.6 }}>·</span>
-            <span>DISCONNECT</span>
+            <span style={{ color: 'var(--color-error)' }}>DISCONNECT</span>
           </button>
         )}
       </div>

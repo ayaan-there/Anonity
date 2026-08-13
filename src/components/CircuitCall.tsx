@@ -77,7 +77,12 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
         ? 'VERIFIED'
         : 'READY';
 
-  const resultColor = result && !loading ? '#00d97e' : 'var(--color-secondary)';
+  const resultColor = isConnected ? '#00d97e' : 'var(--color-secondary)';
+
+  const greenGlow = {
+    color: '#00d97e',
+    textShadow: '0 0 8px rgba(0, 217, 126, 0.55)',
+  };
 
   const actionLabel = isConnecting
     ? 'CONNECTING…'
@@ -200,15 +205,6 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
             <span className="caps" style={{ color: 'var(--color-primary)' }}>
               PRIVACY VERIFICATION
             </span>
-            <span
-              className="mono"
-              style={{
-                fontSize: 12,
-                color: result && !loading ? '#00d97e' : 'var(--color-on-surface-variant)',
-              }}
-            >
-              {resultStatus}
-            </span>
           </div>
 
           <div
@@ -248,7 +244,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
               <Row
                 label="RESULT"
                 value={
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: resultColor }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: resultColor, textShadow: resultColor === '#00d97e' ? '0 0 8px rgba(0, 217, 126, 0.55)' : undefined }}>
                     {result && !loading ? '✓' : proofInProgress ? <span className="spinner" /> : '•'} {resultStatus}
                   </span>
                 }
@@ -420,7 +416,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="caps" style={{ color: '#00d97e' }}>
+              <span className="caps" style={greenGlow}>
                 CIRCUIT
               </span>
               <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>
