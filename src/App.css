@@ -1,0 +1,22 @@
+@media (min-width: 900px) {
+  .anonty-grid {
+    grid-template-columns: 1fr 320px !important;
+  }
+  .priv-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .hero-pad {
+    padding-left: 32px !important;
+    padding-right: 32px !important;
+  }
+  .footer-row {
+    flex-direction: row !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .flow-wrap {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}

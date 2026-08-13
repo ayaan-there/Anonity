@@ -1,4 +1,4 @@
-import { useEffect, useRef, memo, CSSProperties } from 'react';
+import { useEffect, useRef, memo, type CSSProperties } from 'react';
 import { createRenderGate, prefersReducedMotion } from '../utils/renderGate';
 
 const TWO_PI = Math.PI * 2;
@@ -326,7 +326,6 @@ const DotField = memo<DotFieldProps>(
         window.removeEventListener('resize', resize);
         window.removeEventListener('mousemove', onMouseMove);
       };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

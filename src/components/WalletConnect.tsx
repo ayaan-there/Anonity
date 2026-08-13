@@ -7,15 +7,33 @@ interface WalletConnectProps {
   address: string | null;
   network: string;
   isConnected: boolean;
+  connecting: boolean;
+  detecting: boolean;
+  noWallet: boolean;
+  ready: boolean;
+  error: string | null;
   disconnect: () => void;
+  onConnect: () => void;
 }
 
 const WalletConnect: React.FC<WalletConnectProps> = ({
   address,
   network,
   isConnected,
+  connecting,
+  detecting,
+  noWallet,
+  ready,
+  error,
   disconnect,
+  onConnect,
 }) => {
+  const actionLabel = connecting
+    ? 'CONNECTING…'
+    : detecting || noWallet
+      ? 'AWAITING LACE'
+      : 'CONNECT LACE';
+
   return (
     <nav
       style={{
@@ -71,7 +89,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
           />
           {network.toUpperCase()}
         </span>
-        {isConnected && (
+        {isConnected ? (
           <button
             className="btn-secondary"
             onClick={disconnect}
@@ -91,8 +109,43 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
             <span style={{ opacity: 0.6 }}>·</span>
             <span style={{ color: 'var(--color-error)' }}>DISCONNECT</span>
           </button>
+        ) : (
+          <button
+            className="btn-prove"
+            onClick={onConnect}
+            disabled={!ready || connecting}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            {(connecting || detecting) && <span className="spinner" />}
+            {actionLabel}
+          </button>
         )}
       </div>
+      {!isConnected && error && (
+        <div
+          className="fade-in"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 32,
+            left: 32,
+            marginTop: 8,
+            padding: '10px 16px',
+            background: 'var(--color-error-container)',
+            color: 'var(--color-on-error-container)',
+            border: '1px solid var(--color-error-container)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 12,
+            lineHeight: 1.55,
+            zIndex: 60,
+          }}
+        >
+          <span className="caps-xs" style={{ marginRight: 8 }}>
+            ERROR
+          </span>
+          {error}
+        </div>
+      )}
     </nav>
   );
 };

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useMidnight } from './hooks/useMidnight';
 import WalletConnect from './components/WalletConnect';
 import CircuitCall from './components/CircuitCall';
+import './App.css';
 
 const NETWORK = (() => {
   const v = import.meta.env.VITE_NETWORK_ID as string | undefined;
@@ -128,7 +129,13 @@ const App: React.FC = () => {
         address={address}
         network={NETWORK}
         isConnected={isConnected}
+        connecting={isConnecting}
+        detecting={isDetecting}
+        noWallet={noWallet}
+        ready={isReady}
+        error={error}
         disconnect={disconnect}
+        onConnect={connect}
       />
 
       <main
@@ -157,11 +164,7 @@ const App: React.FC = () => {
           lastBlock={lastBlock}
           error={error}
           isConnected={isConnected}
-          isConnecting={isConnecting}
-          isDetecting={isDetecting}
           noWallet={noWallet}
-          isReady={isReady}
-          connect={connect}
         />
 
         <aside
@@ -208,30 +211,6 @@ const App: React.FC = () => {
           ANONITY / L2 SUBMISSION
         </div>
       </footer>
-
-      <style>{`
-        @media (min-width: 900px) {
-          .anonty-grid {
-            grid-template-columns: 1fr 320px !important;
-          }
-          .priv-grid {
-            grid-template-columns: 1fr 1fr !important;
-          }
-          .hero-pad {
-            padding-left: 32px !important;
-            padding-right: 32px !important;
-          }
-          .footer-row {
-            flex-direction: row !important;
-          }
-        }
-        @media (max-width: 600px) {
-          .flow-wrap {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

@@ -86,8 +86,5 @@ public/zkir/
 AGENTS.md
 PRD.md
 
-# Old frontend work (ported to root in L2)
-frontend/
-
 # Helper shell scripts (dev-only, not for submission)
 *.sh

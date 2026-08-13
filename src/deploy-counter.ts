@@ -59,7 +59,7 @@ const witnesses = {
 };
 
 const compiledContract = CompiledContract.make('counter', CounterModule.Contract).pipe(
-  CompiledContract.withWitnesses(witnesses),
+  CompiledContract.withWitnesses(witnesses as never),
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
 
@@ -77,6 +77,21 @@ function saveStateFile(state: NetworkState): void {
 }
 
 function getOrCreateOwnerSecret(): Uint8Array {
+  const fixed = process.env.COUNTER_OWNER_SECRET?.trim();
+  if (fixed) {
+    if (!/^[0-9a-fA-F]{64}$/.test(fixed)) {
+      throw new Error('COUNTER_OWNER_SECRET must be a 32-byte hex string (64 hex chars).');
+    }
+    const sk = Uint8Array.from(Buffer.from(fixed, 'hex'));
+    const state = loadStateFile();
+    (state as any).counterDeployment = {
+      ...(state as any).counterDeployment,
+      ownerSecret: fixed,
+    };
+    saveStateFile(state);
+    console.log('  Using fixed owner secret key from COUNTER_OWNER_SECRET');
+    return sk;
+  }
   const state = loadStateFile();
   const counterState = (state as any).counterDeployment;
   if (counterState?.ownerSecret) {
@@ -97,7 +112,7 @@ function getOrCreateOwnerSecret(): Uint8Array {
 
 // ─── Providers ────────────────────────────────────────────────────────
 
-async function createProviders(walletCtx: WalletContext, ownerSecret: Uint8Array) {
+async function createProviders(walletCtx: WalletContext) {
   const privateStatePassword = process.env.PRIVATE_STATE_PASSWORD?.trim() || 'Local-Devnet-Development-Placeholder-1';
   const accountId = walletCtx.unshieldedKeystore.getBech32Address().toString();
 
@@ -155,7 +170,7 @@ async function main() {
   await persistWalletState(network, walletCtx);
 
   const address = walletCtx.unshieldedKeystore.getBech32Address();
-  let balance = state.unshielded.balances[unshieldedToken().raw] ?? 0n;
+  const balance = state.unshielded.balances[unshieldedToken().raw] ?? 0n;
   console.log(`\n  Wallet Address: ${address}`);
   console.log(`  Balance: ${balance.toLocaleString()} tNight\n`);
 
@@ -197,7 +212,7 @@ async function main() {
   console.log('─── Deploy Counter Contract ────────────────────────────────────\n');
 
   console.log('  Setting up providers...');
-  const providers = await createProviders(walletCtx, ownerSecret);
+  const providers = await createProviders(walletCtx);
 
   process.stdout.write('  Generating DUST...');
   await new Promise((r) => setTimeout(r, 6000));

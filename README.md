@@ -40,7 +40,7 @@ This repo contains the first building block: an owner-gated counter contract tha
 
 ## Live Demo
 
-**URL:** https://mn-demo.vercel.app
+**URL:** https://an0n1ty.vercel.app/
 
 Connect your Lace wallet, call the `increment` circuit, and watch the counter tick up — all without revealing your private key on-chain.
 
@@ -51,7 +51,7 @@ Connect your Lace wallet, call the `increment` circuit, and watch the counter ti
 | Network | Address | Status |
 |---------|---------|--------|
 | Preview | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` | Deployed, tested |
-| Preprod | `aa061ea362bd953e42e95a05d10c44cfe6206b6e7c44fb7bf1cb7dd8095c77b8` | Deployed, live |
+| Preprod | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` | Deployed, live |
 
 ---
 
@@ -121,7 +121,7 @@ This is the same privacy guarantee Anonity will extend to every hacker on the pl
 - **Node.js 22+**
 - **Docker** (for local proof-server, optional for frontend-only dev)
 - **[Compact compiler](https://docs.midnight.network/developing/compact/) v0.5.1** (only if you need to recompile contracts)
-- **[Lace wallet](https://lacwallet.com)** browser extension (for the live demo)
+- **[Lace wallet](https://lace.io)** browser extension (for the live demo)
 - On Windows: WSL2 for contract compilation and deploy scripts
 
 ---
@@ -130,7 +130,7 @@ This is the same privacy guarantee Anonity will extend to every hacker on the pl
 
 ```bash
 # Clone
-git clone https://github.com/ayaan-there/mn-demo.git
+git clone https://github.com/ayaan-there/Anonity.git
 cd mn-demo
 
 # Install

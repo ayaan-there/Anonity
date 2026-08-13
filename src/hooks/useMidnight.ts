@@ -135,10 +135,12 @@ const connectToWallet = (netId: string): Promise<ConnectedAPI> =>
     ),
   );
 
-const initializeProviders = async (connectedAPI: ConnectedAPI): Promise<Providers> => {
+const initializeProviders = async (
+  connectedAPI: ConnectedAPI,
+  config: Awaited<ReturnType<ConnectedAPI['getConfiguration']>>,
+): Promise<Providers> => {
   const networkId = getNetworkId();
   setNetworkId(networkId);
-  const config = await connectedAPI.getConfiguration();
 
   let proofServerUri = config.proverServerUri;
   const LOCAL_PROVER = 'http://127.0.0.1:6300';
@@ -228,7 +230,7 @@ export function useMidnight(): UseMidnightReturn {
 
   const fetchOwnerSecret = (): Uint8Array => {
     if (typeof localStorage !== 'undefined') {
-      const stored = localStorage.getItem('counterSecretKey');
+      const stored = localStorage.getItem('anonityDemoCounterSecret');
       if (stored) {
         try {
           const hex = stored.trim();
@@ -238,13 +240,15 @@ export function useMidnight(): UseMidnightReturn {
         } catch { /* ignore */ }
       }
     }
-    const defaultSecret = Uint8Array.from(
-      Buffer.from('5aed9628dcc2e7fea44dbceb6a901a432ef8749e0dacc7e952924b806f75f625', 'hex'),
+    // Public demo key for the owner-gated demo counter — NOT the real
+    // .midnight-state.json ownerSecret. Anyone may mutate the demo counter.
+    const demoSecret = Uint8Array.from(
+      Buffer.from('0d0b07181203642d951263a16865bfdfc13ad437371645e9f8b2b8ad97ff276f', 'hex'),
     );
     try {
-      localStorage.setItem('counterSecretKey', Buffer.from(defaultSecret).toString('hex'));
+      localStorage.setItem('anonityDemoCounterSecret', Buffer.from(demoSecret).toString('hex'));
     } catch { /* ignore */ }
-    return defaultSecret;
+    return demoSecret;
   };
 
   useEffect(() => {
@@ -289,11 +293,19 @@ export function useMidnight(): UseMidnightReturn {
       const netId = getNetworkId();
       const connected = await connectToWallet(netId);
       connectedAPIRef.current = connected;
+
+      const config = await connected.getConfiguration();
+      if (config.networkId && config.networkId !== netId) {
+        throw new Error(
+          `Network mismatch: Lace is connected to "${config.networkId}" but this app targets "${netId}". Switch networks in Lace and try again.`,
+        );
+      }
+
       const unshielded = await connected.getUnshieldedAddress();
       const addr = (unshielded as any)?.unshieldedAddress ?? '(unknown address)';
       setAddress(addr);
       setWalletState('connected');
-      const providers = await initializeProviders(connected);
+      const providers = await initializeProviders(connected, config);
       providersRef.current = providers;
 
       const contractAddress = getDefaultContractAddress();
@@ -319,8 +331,14 @@ export function useMidnight(): UseMidnightReturn {
         setCount(null);
       }
     } catch (e: any) {
-      const msg = e?.message ?? String(e);
-      setError(msg);
+      const isUserRejected =
+        e?.type === 'DAppConnectorAPIError' &&
+        (e?.code === 'Rejected' || e?.code === 'PermissionRejected');
+      if (isUserRejected) {
+        setError('Connection rejected in Lace. Approve the wallet connection request and try again.');
+      } else {
+        setError(e?.message ?? String(e));
+      }
       setWalletState('ready');
       setAddress(null);
       connectedAPIRef.current = null;

@@ -38,11 +38,7 @@ interface CircuitCallProps {
   lastBlock: string | null;
   error: string | null;
   isConnected: boolean;
-  isConnecting: boolean;
-  isDetecting: boolean;
   noWallet: boolean;
-  isReady: boolean;
-  connect: () => void;
 }
 
 const CircuitCall: React.FC<CircuitCallProps> = ({
@@ -60,11 +56,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
   lastBlock,
   error,
   isConnected,
-  isConnecting,
-  isDetecting,
   noWallet,
-  isReady,
-  connect,
 }) => {
   const privateUnlocked = isConnected;
   const proofInProgress = loading && isConnected;
@@ -83,14 +75,6 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
     color: '#00d97e',
     textShadow: '0 0 8px rgba(0, 217, 126, 0.55)',
   };
-
-  const actionLabel = isConnecting
-    ? 'CONNECTING…'
-    : isDetecting || noWallet
-      ? 'AWAITING LACE'
-      : 'CONNECT LACE';
-
-  const onConnectClick = () => { void connect(); };
 
   return (
     <section
@@ -156,7 +140,6 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
           glowRadius={160}
           sparkle={false}
           waveAmplitude={0}
-          glowColor="#180332"
         />
         <div
           style={{
@@ -361,22 +344,18 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
             }}
           >
             {!isConnected ? (
-              <button
-                className="btn-prove"
-                onClick={onConnectClick}
-                disabled={!isReady || noWallet}
+              <div
+                className="caps"
+                style={{
+                  color: 'var(--color-on-surface-variant)',
+                  fontSize: 11,
+                  letterSpacing: '0.08em',
+                  textAlign: 'center',
+                  padding: '8px 0',
+                }}
               >
-                {isDetecting || isConnecting ? (
-                  <>
-                    <span className="spinner" style={{ marginRight: 8 }} />
-                    {actionLabel}
-                  </>
-                ) : noWallet ? (
-                  'INSTALL LACE TO PROVE'
-                ) : (
-                  'CONNECT LACE'
-                )}
-              </button>
+                CONNECT LACE ABOVE TO UNLOCK THE CIRCUIT
+              </div>
             ) : (
               <>
                 <button className="btn-prove" onClick={increment} disabled={loading || !contract}>
@@ -394,6 +373,25 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
               </>
             )}
           </div>
+
+          {result && !loading && (
+            <div
+              className="fade-in caps"
+              style={{
+                padding: '12px 16px',
+                borderTop: '1px solid var(--color-border)',
+                background: 'var(--color-bg)',
+                textAlign: 'center',
+                color: '#00d97e',
+                fontSize: 12,
+                letterSpacing: '0.08em',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            >
+              ✓ PROVED WITHOUT REVEALING YOUR INPUT
+            </div>
+          )}
         </div>
 
         {lastCircuit && (
@@ -416,7 +414,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="caps" style={greenGlow}>
+              <span className="caps" style={result ? greenGlow : { color: 'var(--color-on-surface-variant)' }}>
                 CIRCUIT
               </span>
               <span className="mono" style={{ fontSize: 12, color: 'var(--color-on-surface)' }}>

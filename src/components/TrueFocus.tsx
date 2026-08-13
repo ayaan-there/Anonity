@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import './TrueFocus.css';
 
