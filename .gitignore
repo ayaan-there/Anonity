@@ -70,3 +70,24 @@ temp/
 
 # Midnight local private state store (LevelDB from counter deploy)
 midnight-level-db/
+
+# Frontend build artifacts (copied from contracts/managed/counter/ during build)
+public/keys/
+public/zkir/
+
+# Vercel CLI
+.vercel/
+
+# Environment overrides (keep .env.preprod tracked for public config)
+.env.preprod.local
+.env.*.local
+
+# AI context files (never tracked)
+AGENTS.md
+PRD.md
+
+# Old frontend work (ported to root in L2)
+frontend/
+
+# Helper shell scripts (dev-only, not for submission)
+*.sh
