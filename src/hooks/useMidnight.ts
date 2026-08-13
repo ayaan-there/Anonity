@@ -359,7 +359,9 @@ export function useMidnight(): UseMidnightReturn {
       } catch { /* ignore */ }
     } catch (e: any) {
       const msg = e?.message ?? String(e);
-      setError(`Circuit "${name}" failed: ${msg}`);
+      const full = e?.stack ? `${msg}\n${e.stack}` : msg;
+      console.error(`[circuit:${name}]`, e);
+      setError(`Circuit "${name}" failed: ${full}`);
     } finally {
       setLoading(false);
     }
