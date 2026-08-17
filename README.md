@@ -1,40 +1,8 @@
 # Anonity
 
-A privacy-preserving bug bounty platform on [Midnight Network](https://midnight.network) where hacker anonymity and safe payments come first. Built with [Compact](https://docs.midnight.network/developing/compact/) and React.
+> A privacy-preserving bug bounty platform on [Midnight Network](https://midnight.network). This repo starts with the foundation: an owner-gated counter contract where the owner proves authority with a zero-knowledge proof — never revealing their secret key on-chain.
 
 Level 2 (Waxing Crescent) submission for the Midnight Builder Challenge.
-
----
-
-## The Idea
-
-Bug bounty platforms have a trust problem. Hackers risk exposing their identity every time they report a vulnerability. Organizations can never be fully certain that their bounties, source code, and endpoints are in the right hands. Anonity fixes both sides.
-
-**Anonity** is a bug bounty platform where the anonymity of good-faith hackers matters the most. We provide safe payments without exposing any real identity, and organizations can be peaceful knowing their bounties and code are handled by the right people.
-
-### A new bug bounty system
-
-We introduce a stake-based submission model. Hackers spend Midnight tokens to submit a report — this eliminates spam and keeps triage healthy. The outcome determines what happens to the stake:
-
-| Report outcome | Stake | Reward |
-|---------------|-------|--------|
-| **Genuine** (valid vulnerability) | Payback | Reward + full stake returned |
-| **Duplicate** (already reported) | Payback | Full stake returned |
-| **Informative** (useful but not exploitable) | Payback | Org decides reward, stake returned |
-| **Spam / senseless / AI slop** (flagged by triage) | Burned | No reward, tokens burned |
-
-Good-faith hackers never lose their stake. Only bad-faith submissions pay the price. This makes it economically irrational to spam while keeping the barrier low for genuine researchers.
-
-### Why Midnight
-
-- **Zero-knowledge proofs**: Hackers prove they hold the right credentials without revealing their identity
-- **Shielded payments**: Bounty payouts happen on-chain without linking to a real-world identity
-- **Private state**: Submission metadata stays off-chain until the hacker chooses to reveal
-- **Token staking**: Native token mechanics for the anti-spam deposit system
-
-### Current stage (L2)
-
-This repo contains the first building block: an owner-gated counter contract that demonstrates the core privacy pattern — proving authority without revealing identity. The counter is the seed of the staking mechanism: a user proves they hold the right secret key, the chain verifies the proof, and the secret never touches the ledger.
 
 ---
 
@@ -42,16 +10,16 @@ This repo contains the first building block: an owner-gated counter contract tha
 
 **URL:** https://an0n1ty.vercel.app/
 
-Connect your Lace wallet, call the `increment` circuit, and watch the counter tick up — all without revealing your private key on-chain.
+Connect your wallet, call the `increment` circuit, and watch the counter tick up — all without revealing your private key on-chain.
 
 ---
 
 ## Contract Address
 
-| Network | Address | Status |
-|---------|---------|--------|
-| Preview | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` | Deployed, tested |
-| Preprod | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` | Deployed, live |
+| Network  | Address                                                          |
+|----------|------------------------------------------------------------------|
+| Preview  | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` |
+| Preprod  | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` |
 
 ---
 
@@ -59,7 +27,7 @@ Connect your Lace wallet, call the `increment` circuit, and watch the counter ti
 
 The current deployment is a privacy-preserving counter that only the owner can increment. The owner proves they hold the right secret key without ever revealing it. Think of it as a private gate — the chain sees a valid proof of authority, but never the authority itself.
 
-This is the foundation of Anonity's staking system: a user stakes tokens, the contract verifies their right to act, and the private key never leaves their wallet.
+The frontend lets you connect a Midnight wallet and trigger `increment` against the deployed Preprod contract. The private key stays in your wallet — the circuit gets a witness, not the raw secret.
 
 **Circuits:**
 
@@ -71,32 +39,21 @@ This is the foundation of Anonity's staking system: a user stakes tokens, the co
 | `get()` | public | returns current count |
 | `publicKey(sk)` | pure | derives owner commitment |
 
-The frontend lets you connect a Lace wallet and trigger `increment` against the deployed Preprod contract. The private key stays in your wallet — the circuit gets a witness, not the raw secret.
+This is the foundation of Anonity's staking system: a user stakes tokens, the contract verifies their right to act, and the private key never leaves their wallet.
 
 ---
 
 ## Privacy Model
 
-**Public (on-chain):**
-- `count` — current counter value
-- `owner` — commitment derived from `persistentHash("counter:owner:" || round || secretKey)`
-- `round` — rotation counter, incremented on each `reset()`
-- Contract address and circuit entry points
-
-**Private (never on-chain):**
-- `secretKey` — 32-byte secret supplied as a circuit witness, read from off-chain private state
-- Not disclosed in any proof, transaction, or ledger entry
-
-**What the user proves without revealing:**
-That they hold the same secret key that produced the on-chain `owner` commitment. The circuit runs `assert(owner == publicKey(sk))` inside a zero-knowledge proof — the chain learns the proof is valid, but never learns `sk` itself.
-
-In Anonity's full vision, this same pattern lets a hacker prove they submitted a valid report and are entitled to a reward — without ever linking their wallet to their real identity.
+- **PUBLIC (on-chain, visible to anyone):** `count` (current counter value), `owner` (commitment derived from `persistentHash("counter:owner:" || round || secretKey)`), `round` (rotation counter), contract address and circuit entry points.
+- **PRIVATE (private witness, never on-chain):** `secretKey` — a 32-byte secret supplied as a circuit witness, read from off-chain private state. Never disclosed in any proof, transaction, or ledger entry.
+- **What the user PROVES without revealing:** That they hold the same secret key that produced the on-chain `owner` commitment. The circuit runs `assert(owner == publicKey(sk))` inside a zero-knowledge proof — the chain learns the proof is valid, but never learns `sk` itself.
 
 ---
 
 ## Privacy Claim
 
-I can prove I am the owner of this counter without revealing my identity, my public key, or my secret key. The chain sees a valid ZK proof of possession — nothing more.
+An on-chain observer can see a valid ZK proof of ownership and a changing counter — but **cannot** see the owner's secret key, public key, or identity. I can prove I am the owner of this counter without revealing any of them.
 
 This is the same privacy guarantee Anonity will extend to every hacker on the platform: prove you earned the bounty, collect the payment, stay anonymous.
 
@@ -104,25 +61,24 @@ This is the same privacy guarantee Anonity will extend to every hacker on the pl
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Smart contract | Compact language, compiled to Midnight VM bytecode |
-| ZK proofs | Midnight's built-in zero-knowledge proof system |
-| Frontend | React 19, Vite 7, TypeScript |
-| Wallet | Lace wallet via DApp Connector API |
-| Proof server | Midnight proof-server (Docker) |
-| Indexer | Midnight indexer (Preprod) |
-| Hosting | Vercel |
+- **Midnight network** (Preprod)
+- **Compact language** — smart contract
+- **Midnight.js SDK** — DApp Connector API, proof provider, indexer
+- **React 19 + Vite 7 + TypeScript** — frontend
+- **Lace / 1AM wallet** — browser wallet
+- **Node.js v22**
+- **Docker** — local proof-server
+- **Vercel** — hosting
 
 ---
 
 ## Prerequisites
 
-- **Node.js 22+**
-- **Docker** (for local proof-server, optional for frontend-only dev)
-- **[Compact compiler](https://docs.midnight.network/developing/compact/) v0.5.1** (only if you need to recompile contracts)
-- **[Lace wallet](https://lace.io)** browser extension (for the live demo)
-- On Windows: WSL2 for contract compilation and deploy scripts
+- **Node.js v22+**
+- **Lace wallet** (or 1AM) browser extension
+- **Docker** — only for the local proof-server (required for Lace; 1AM proves in-browser)
+- **Compact compiler** — only if you need to recompile contracts
+- **WSL2** on Windows — for contract compilation and deploy scripts
 
 ---
 
@@ -136,19 +92,19 @@ cd mn-demo
 # Install
 npm install
 
-# Compile contracts (keys + zkir are already committed, so this is optional)
+# Compile contracts (optional — keys + zkir are already committed)
 npm run compile
 
-# Start the proof-server (required for circuit calls)
+# Start the proof-server (only required for Lace wallet)
 npm run proof-server:start
 
 # Start the dev server
 npm run dev
 ```
 
-Open http://localhost:3000, connect Lace, and click **Increment**.
+Open http://localhost:3000, connect your wallet, and click **Increment**.
 
-To run the emulator test suite (no network required):
+## Run Tests
 
 ```bash
 npm test
@@ -158,81 +114,35 @@ npm test
 
 ---
 
+## Initial Idea
+
+[LEAVE PLACEHOLDER — I will fill this in manually]
+
+---
+
+## Screenshots
+
+### Contract compilation
+
+![Compile output](screenshots/01-compile.png)
+
+### Test suite
+
+![Test suite](screenshots/02-tests.png)
+
+### Contract deployment
+
+![Deploy output](screenshots/03-deploy.png)
+
+### Repository
+
+![Repository](screenshots/04-repo.png)
+
+---
+
 ## Demo Video
 
-**Link:** TODO — screen recording showing wallet connect, circuit call, and counter update.
-
----
-
-## Project Structure
-
-```
-mn-demo/
-├── contracts/
-│   ├── counter.compact              # Counter contract source
-│   └── managed/counter/             # Compiled output (keys, zkir, contract JS)
-├── src/
-│   ├── components/
-│   │   ├── WalletConnect.tsx        # Lace wallet connect/disconnect UI
-│   │   └── CircuitCall.tsx          # Increment circuit call + proof display
-│   ├── hooks/
-│   │   └── useMidnight.ts           # Midnight SDK wallet + contract hook
-│   ├── lib/
-│   │   ├── counter-contract.ts      # Contract binding + witness wiring
-│   │   └── in-memory-private-state-provider.ts
-│   ├── App.tsx                      # Root component
-│   ├── main.tsx                     # React entry
-│   └── index.css                    # Styles
-├── tests/
-│   └── counter.test.ts              # 13-test emulator suite
-├── public/keys/                     # ZK proving keys (copied during build)
-├── public/zkir/                     # ZK IR (copied during build)
-├── scripts/
-│   └── copy-assets.mjs             # Cross-platform key/zkir copy
-├── .github/workflows/build.yml     # CI build check
-├── docker-compose.yml               # Proof-server
-├── vercel.json                      # Deploy config
-└── package.json
-```
-
----
-
-## How the counter contract works
-
-```compact
-export ledger owner: Bytes<32>;
-export ledger count: Uint<64>;
-export ledger round: Counter;
-
-constructor(ownerSecret: Bytes<32>, initialCount: Uint<64>) {
-    round.increment(1);
-    owner = disclose(publicKey(ownerSecret));
-    count = disclose(initialCount);
-}
-
-witness secretKey(): Bytes<32>;
-
-circuit increment(): [] {
-    const sk = secretKey();
-    assert(owner == publicKey(sk), "increment: caller is not the owner");
-    count = disclose(count + 1 as Uint<64>);
-}
-```
-
-The `secretKey()` witness is the only private input. It is read from off-chain private state and supplied to the circuit at call time. The circuit derives the matching public commitment via `persistentHash` and checks it against the on-chain `owner` ledger. The secret never appears in a proof or on the ledger.
-
----
-
-## Roadmap
-
-| Level | Goal | Status |
-|-------|------|--------|
-| L1 — New Moon | Counter contract deployed, 13 tests | Done |
-| L2 — Waxing Crescent | React frontend, Lace wallet, circuit call UI | In progress |
-| L3 — First Quarter | CI/CD, additional tests, proposal | Pending |
-| L4 — Waxing Gibbous | Anonity bug bounty contract + full frontend | Pending |
-| L5 — Full Moon | 50 Preprod users, feedback collection | Pending |
-| L6 — Supermoon | Mainnet launch, brand assets | Pending |
+**Link:** https://youtu.be/kGULkA1vfZ0 — screen recording showing wallet connect, circuit call, and counter update.
 
 ---
 

@@ -324,7 +324,7 @@ const CircuitCall: React.FC<CircuitCallProps> = ({
                     lineHeight: 1.55,
                   }}
                 >
-                  WAITING FOR LACE CONNECTION TO UNLOCK WITNESS.
+                  WAITING FOR WALLET CONNECTION TO UNLOCK WITNESS.
                 </div>
               )}
             </div>
