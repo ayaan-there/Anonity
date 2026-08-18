@@ -37,7 +37,7 @@ The frontend lets you connect a Midnight wallet and trigger increment against th
 |---------|------|--------|
 | increment() | owner-only | count + 1 |
 | decrement() | owner-only | count - 1 |
-| eset() | owner-only | count = 0, rotates round |
+| reset() | owner-only | count = 0, rotates round |
 | get() | public | returns current count |
 | publicKey(sk) | pure | derives owner commitment |
 
