@@ -446,7 +446,6 @@ export function useMidnight(): UseMidnightReturn {
         }
       } catch { /* ignore */ }
     } catch (e: any) {
-      console.error(`[useMidnight] circuit "${name}" failed`, e);
       const msg = deepestErrorMessage(e);
       setError(`Circuit "${name}" failed: ${msg}`);
       setLastTxId(null);
