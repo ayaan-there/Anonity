@@ -4,7 +4,7 @@
 
 > A privacy-preserving bug bounty platform on [Midnight Network](https://midnight.network). This repo starts with the foundation: an owner-gated counter contract where the owner proves authority with a zero-knowledge proof — never revealing their secret key on-chain.
 
-Level 2 (Waxing Crescent) submission for the Midnight Builder Challenge.
+Level 3 (First Quarter) submission for the Midnight Builder Challenge.
 
 ---
 
