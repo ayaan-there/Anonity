@@ -126,7 +126,7 @@ See [PROPOSAL.md](./PROPOSAL.md) — Anonity product vision, privacy data model,
 
 ## Initial Idea
 
-[LEAVE PLACEHOLDER — I will fill this in manually]
+Anonity is a privacy-preserving bug bounty platform on Midnight where security researchers discover programs, submit vulnerability reports, and receive bounties without revealing their real-world identity. On transparent chains, a researcher's wallet address, payouts, and full submission history are publicly traceable, and that traceability is what keeps the best hackers away from bug bounties. Anonity inverts this: programs, scopes, and rules are public, while the researcher stays private — trust and eligibility (reputation, signal, valid report counts) are proved with zero-knowledge proofs instead of exposing identity or history, reports are submitted anonymously, and bounties are paid with shielded transfers. Every submission carries a shielded deposit that acts as an anti-spam fee: burned when the report is irrelevant or AI-generated slop, refunded together with the bounty when it is valid. The owner-gated counter in this repo is the first building block of that system — a state transition where authority is proved without revealing the key, the same commitment-plus-witness pattern that will later gate bounty submissions and resolutions.
 
 ---
 
