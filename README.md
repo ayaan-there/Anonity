@@ -18,7 +18,7 @@ Connect your wallet and use the VeilWork bounty board live on Preprod.
 
 | Network  | Address                                                                 |
 |----------|-------------------------------------------------------------------------|
-| Preprod (VeilWork bounty core) | `PENDING DEPLOY — pasted here right after deployment` |
+| Preprod (VeilWork bounty core) | `d274ef296c940131983d0379df4b4bffc323c0b52d031596969a56998ae073b5` |
 | Preprod (counter, L2 demo)     | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` |
 | Preview (counter, L1)          | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` |
 
