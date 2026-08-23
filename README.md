@@ -10,7 +10,7 @@
 
 **URL:** https://an0n1ty.vercel.app/
 
-Connect your wallet and use the VeilWork bounty board live on Preprod.
+Connect your wallet and use the Anonity bounty board live on Preprod.
 
 ---
 
@@ -18,7 +18,7 @@ Connect your wallet and use the VeilWork bounty board live on Preprod.
 
 | Network  | Address                                                                 |
 |----------|-------------------------------------------------------------------------|
-| Preprod (VeilWork bounty core) | `d274ef296c940131983d0379df4b4bffc323c0b52d031596969a56998ae073b5` |
+| Preprod (Anonity bounty core) | `d274ef296c940131983d0379df4b4bffc323c0b52d031596969a56998ae073b5` |
 | Preprod (counter, L2 demo)     | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` |
 | Preview (counter, L1)          | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` |
 
@@ -30,7 +30,7 @@ Bug bounty platforms have an identity problem. Security researchers must disclos
 
 **Anonity** fixes both sides. Organizations post bounties; researchers submit vulnerability reports anonymously; every submission carries a small shielded anti-spam fee that is refunded when the report is valid or a duplicate and **burned** when it is slop. Payment rights travel with zero-knowledge proofs, not identities. Good-faith hackers stay anonymous and whole; bad-faith submissions pay a real price.
 
-This repo ships the MVP privacy core: the **VeilWork contract** (bounty posting, anonymous submission with fee escrow, org-only resolution across three outcomes, and aggregate fee accounting) plus a React frontend wired to Preprod. It's built on Midnight because only its data-protection model makes this design possible — transparent chains expose sender, recipient, and amount of every transaction, destroying hunter anonymity at the protocol level.
+This repo ships the MVP privacy core of **Anonity**: the bounty contract (`veilwork.compact` — the file's original codename; renaming it would force a redeploy and a new address) with bounty posting, anonymous submission with fee escrow, org-only resolution across three outcomes, and aggregate fee accounting — plus a React frontend wired to Preprod. It's built on Midnight because only its data-protection model makes this design possible — transparent chains expose sender, recipient, and amount of every transaction, destroying hunter anonymity at the protocol level.
 
 ---
 

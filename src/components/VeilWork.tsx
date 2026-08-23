@@ -81,7 +81,7 @@ const VeilWork: React.FC<VeilWorkProps> = ({
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
         <h3 className="caps" style={{ color: 'var(--color-primary)', margin: 0 }}>
-          VEILWORK BOUNTY BOARD
+          ANONITY BOUNTY BOARD
         </h3>
         <div className="mono" style={{ fontSize: 11, color: 'var(--color-on-surface-variant)' }}>
           {network.toUpperCase()} · {contract ? `${contract.slice(0, 10)}…${contract.slice(-6)}` : 'NOT DEPLOYED'}

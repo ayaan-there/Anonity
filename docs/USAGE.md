@@ -26,7 +26,7 @@ Click **CONNECT WALLET**, pick your wallet (1AM is preferred when installed), an
 
 ### 3. Post a bounty (organizations)
 
-In the **VEILWORK BOUNTY BOARD** section:
+In the **ANONITY BOUNTY BOARD** section:
 
 1. Find the **POST BOUNTY** panel.
 2. Enter an amount (in credits) and a deadline.
