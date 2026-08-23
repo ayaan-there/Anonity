@@ -21,10 +21,10 @@ import {
   type CounterPrivateState,
 } from '../lib/counter-contract';
 import {
-  compiledVeilworkContract,
-  VEILWORK_PRIVATE_STATE_ID,
-  VeilworkModule,
-} from '../lib/veilwork-contract';
+  compiledAnonityContract,
+  ANONITY_PRIVATE_STATE_ID,
+  AnonityModule,
+} from '../lib/anonity-contract';
 
 export type BountyRow = {
   id: bigint;
@@ -41,7 +41,7 @@ export type SubmissionRow = {
   outcome: number;
 };
 
-export type VwStats = {
+export type BoardStats = {
   feeEscrowed: bigint;
   feesBurned: bigint;
   feesRefunded: bigint;
@@ -107,13 +107,13 @@ const fetchCountFromIndexer = async (contractAddress: string): Promise<bigint | 
   }
 };
 
-type VwLedgerView = {
+type BoardView = {
   bounties: BountyRow[];
   submissions: SubmissionRow[];
-  stats: VwStats;
+  stats: BoardStats;
 };
 
-const fetchVeilworkState = async (contractAddress: string): Promise<VwLedgerView | null> => {
+const fetchBoardState = async (contractAddress: string): Promise<BoardView | null> => {
   try {
     const res = await fetch(INDEXER_GRAPHQL_URL, {
       method: 'POST',
@@ -128,7 +128,7 @@ const fetchVeilworkState = async (contractAddress: string): Promise<VwLedgerView
     const stateHex = gql?.data?.contractAction?.state;
     if (!stateHex) return null;
     const contractState = CompactContractState.deserialize(hexToBytes(stateHex));
-    const l = VeilworkModule.ledger(contractState.data);
+    const l = AnonityModule.ledger(contractState.data);
 
     const bounties: BountyRow[] = [];
     for (const [id, b] of l.bounties) {
@@ -190,8 +190,8 @@ const getDefaultContractAddress = (): string | null => {
   return v.trim();
 };
 
-const getVeilworkContractAddress = (): string | null => {
-  const v = import.meta.env.VITE_VEILWORK_CONTRACT as string | undefined;
+const getBoardContractAddress = (): string | null => {
+  const v = import.meta.env.VITE_ANONITY_CONTRACT as string | undefined;
   if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
   return v.trim();
 };
@@ -345,12 +345,12 @@ export interface UseMidnightReturn {
   clearError: () => void;
   bounties: BountyRow[];
   submissions: SubmissionRow[];
-  vwStats: VwStats | null;
-  vwReady: boolean;
+  boardStats: BoardStats | null;
+  boardReady: boolean;
   postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
   submitReport: (bountyId: bigint) => Promise<void>;
   resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
-  refreshVeilwork: () => Promise<void>;
+  refreshBoard: () => Promise<void>;
 }
 
 export function useMidnight(): UseMidnightReturn {
@@ -361,8 +361,8 @@ export function useMidnight(): UseMidnightReturn {
   const [count, setCount] = useState<bigint | null>(null);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
-  const [vwStats, setVwStats] = useState<VwStats | null>(null);
-  const [vwReady, setVwReady] = useState(false);
+  const [boardStats, setBoardStats] = useState<BoardStats | null>(null);
+  const [boardReady, setBoardReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [lastCircuit, setLastCircuit] = useState<string | null>(null);
@@ -373,7 +373,7 @@ export function useMidnight(): UseMidnightReturn {
   const connectedAPIRef = useRef<ConnectedAPI | null>(null);
   const providersRef = useRef<Providers | null>(null);
   const foundContractRef = useRef<any>(null);
-  const vwContractRef = useRef<any>(null);
+  const boardContractRef = useRef<any>(null);
   const walletStateRef = useRef<WalletState>('detecting');
 
   const fetchOwnerSecret = (): Uint8Array => {
@@ -399,10 +399,10 @@ export function useMidnight(): UseMidnightReturn {
     return demoSecret;
   };
 
-  // Public demo identity secrets for the VeilWork bounty board — same
+  // Public demo identity secrets for the Anonity bounty board — same
   // philosophy as the counter demo secret: fixed, shipped in the client,
   // so any visitor can act as both an org and a hunter on the demo board.
-  const fetchVwSecrets = (): { orgSecretKey: Uint8Array; hunterSecretKey: Uint8Array } => {
+  const fetchboardSecrets = (): { orgSecretKey: Uint8Array; hunterSecretKey: Uint8Array } => {
     return {
       orgSecretKey: Uint8Array.from(Buffer.from('a1'.repeat(32), 'hex')),
       hunterSecretKey: Uint8Array.from(Buffer.from('b2'.repeat(32), 'hex')),
@@ -494,26 +494,26 @@ export function useMidnight(): UseMidnightReturn {
         setCount(null);
       }
 
-      const vwAddress = getVeilworkContractAddress();
-      if (vwAddress) {
+      const boardAddress = getBoardContractAddress();
+      if (boardAddress) {
         try {
-          const vwSecrets = fetchVwSecrets();
-          const vwFound = await findDeployedContract(providers as any, {
-            compiledContract: compiledVeilworkContract as any,
-            privateStateId: VEILWORK_PRIVATE_STATE_ID,
-            contractAddress: vwAddress,
-            initialPrivateState: vwSecrets as any,
+          const boardSecrets = fetchboardSecrets();
+          const boardFound = await findDeployedContract(providers as any, {
+            compiledContract: compiledAnonityContract as any,
+            privateStateId: ANONITY_PRIVATE_STATE_ID,
+            contractAddress: boardAddress,
+            initialPrivateState: boardSecrets as any,
           });
-          vwContractRef.current = vwFound;
-          setVwReady(true);
-          const vwState = await fetchVeilworkState(vwAddress);
-          if (vwState) {
-            setBounties(vwState.bounties);
-            setSubmissions(vwState.submissions);
-            setVwStats(vwState.stats);
+          boardContractRef.current = boardFound;
+          setBoardReady(true);
+          const boardState = await fetchBoardState(boardAddress);
+          if (boardState) {
+            setBounties(boardState.bounties);
+            setSubmissions(boardState.submissions);
+            setBoardStats(boardState.stats);
           }
         } catch (e: any) {
-          console.warn('VeilWork contract not bound:', e?.message ?? e);
+          console.warn('Anonity contract not bound:', e?.message ?? e);
         }
       }
     } catch (e: any) {
@@ -530,8 +530,8 @@ export function useMidnight(): UseMidnightReturn {
       connectedAPIRef.current = null;
       providersRef.current = null;
       foundContractRef.current = null;
-      vwContractRef.current = null;
-      setVwReady(false);
+      boardContractRef.current = null;
+      setBoardReady(false);
     }
   }, [walletState, selectedWalletId]);
 
@@ -543,15 +543,15 @@ export function useMidnight(): UseMidnightReturn {
     connectedAPIRef.current = null;
     providersRef.current = null;
     foundContractRef.current = null;
-    vwContractRef.current = null;
+    boardContractRef.current = null;
     setAddress(null);
     setCount(null);
     setResult(null);
     setError(null);
-    setVwReady(false);
+    setBoardReady(false);
     setBounties([]);
     setSubmissions([]);
-    setVwStats(null);
+    setBoardStats(null);
     setWalletState('ready');
   }, []);
 
@@ -617,25 +617,25 @@ export function useMidnight(): UseMidnightReturn {
     }
   }, []);
 
-  const refreshVeilwork = useCallback(async () => {
-    const vwAddress = getVeilworkContractAddress();
-    if (!vwAddress) return;
-    const vwState = await fetchVeilworkState(vwAddress);
-    if (vwState) {
-      setBounties(vwState.bounties);
-      setSubmissions(vwState.submissions);
-      setVwStats(vwState.stats);
+  const refreshBoard = useCallback(async () => {
+    const boardAddress = getBoardContractAddress();
+    if (!boardAddress) return;
+    const boardState = await fetchBoardState(boardAddress);
+    if (boardState) {
+      setBounties(boardState.bounties);
+      setSubmissions(boardState.submissions);
+      setBoardStats(boardState.stats);
     }
   }, []);
 
-  const runVwCircuit = useCallback(
+  const runBoardCircuit = useCallback(
     async (
       name: 'postBounty' | 'submitReport' | 'resolveSubmission',
       ...args: readonly unknown[]
     ) => {
-      const contract = vwContractRef.current;
+      const contract = boardContractRef.current;
       if (!contract) {
-        setError('VeilWork contract not loaded. Connect wallet first.');
+        setError('Anonity contract not loaded. Connect wallet first.');
         return;
       }
       setLoading(true);
@@ -649,7 +649,7 @@ export function useMidnight(): UseMidnightReturn {
         setResult(`txId=${txId ?? ''}${block != null ? ` block=${block}` : ''}`);
         setLastTxId(txId ?? null);
         setLastBlock(block != null ? String(block) : null);
-        await refreshVeilwork();
+        await refreshBoard();
       } catch (e: any) {
         const msg = deepestErrorMessage(e);
         setError(`Circuit "${name}" failed: ${msg}`);
@@ -659,21 +659,21 @@ export function useMidnight(): UseMidnightReturn {
         setLoading(false);
       }
     },
-    [refreshVeilwork],
+    [refreshBoard],
   );
 
   const postBounty = useCallback(
-    (amount: bigint, deadline: bigint) => runVwCircuit('postBounty', amount, deadline),
-    [runVwCircuit],
+    (amount: bigint, deadline: bigint) => runBoardCircuit('postBounty', amount, deadline),
+    [runBoardCircuit],
   );
   const submitReport = useCallback(
-    (bountyId: bigint) => runVwCircuit('submitReport', bountyId),
-    [runVwCircuit],
+    (bountyId: bigint) => runBoardCircuit('submitReport', bountyId),
+    [runBoardCircuit],
   );
   const resolveSubmission = useCallback(
     (submissionId: bigint, outcome: number) =>
-      runVwCircuit('resolveSubmission', submissionId, BigInt(outcome)),
-    [runVwCircuit],
+      runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome)),
+    [runBoardCircuit],
   );
 
   return {
@@ -698,12 +698,12 @@ export function useMidnight(): UseMidnightReturn {
     clearError,
     bounties,
     submissions,
-    vwStats,
-    vwReady,
+    boardStats,
+    boardReady,
     postBounty,
     submitReport,
     resolveSubmission,
-    refreshVeilwork,
+    refreshBoard,
   };
 }
 

@@ -30,7 +30,7 @@ Bug bounty platforms have an identity problem. Security researchers must disclos
 
 **Anonity** fixes both sides. Organizations post bounties; researchers submit vulnerability reports anonymously; every submission carries a small shielded anti-spam fee that is refunded when the report is valid or a duplicate and **burned** when it is slop. Payment rights travel with zero-knowledge proofs, not identities. Good-faith hackers stay anonymous and whole; bad-faith submissions pay a real price.
 
-This repo ships the MVP privacy core of **Anonity**: the bounty contract (`veilwork.compact` — the file's original codename; renaming it would force a redeploy and a new address) with bounty posting, anonymous submission with fee escrow, org-only resolution across three outcomes, and aggregate fee accounting — plus a React frontend wired to Preprod. It's built on Midnight because only its data-protection model makes this design possible — transparent chains expose sender, recipient, and amount of every transaction, destroying hunter anonymity at the protocol level.
+This repo ships the MVP privacy core of **Anonity**: the bounty contract (`contracts/anonity.compact`) with bounty posting, anonymous submission with fee escrow, org-only resolution across three outcomes, and aggregate fee accounting — plus a React frontend wired to Preprod. It's built on Midnight because only its data-protection model makes this design possible — transparent chains expose sender, recipient, and amount of every transaction, destroying hunter anonymity at the protocol level.
 
 ---
 
@@ -45,7 +45,7 @@ This repo ships the MVP privacy core of **Anonity**: the bounty contract (`veilw
 ## Tech Stack
 
 - **Midnight network** (Preprod)
-- **Compact language** — ZK smart contracts (`veilwork.compact`, `counter.compact`)
+- **Compact language** — ZK smart contracts (`anonity.compact`, `counter.compact`)
 - **Midnight.js SDK** — DApp Connector API, proof providers, indexer
 - **React 19 + Vite 7 + TypeScript** — frontend
 - **Lace / 1AM wallets** — browser wallets with wallet-delegated proving
@@ -75,7 +75,7 @@ npm install
 
 # 3. Recompile contracts (optional — artifacts are committed)
 npm run compile
-npm run compile:veilwork
+npm run compile:anonity
 
 # 4. Start the local proof server (only needed for Lace wallet)
 npm run proof-server:start
@@ -89,7 +89,7 @@ Open http://localhost:3000, connect your wallet, and use the bounty board.
 Deploy the contract yourself with:
 
 ```bash
-COUNTER_OWNER_SECRET=<hex> npm run deploy:veilwork -- --network preprod
+COUNTER_OWNER_SECRET=<hex> npm run deploy:anonity -- --network preprod
 ```
 
 ---

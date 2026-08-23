@@ -32,7 +32,7 @@ jobs:
       - name: Compile contracts
         run: |
           compact compile contracts/counter.compact contracts/managed/counter
-          npm run compile:veilwork
+          npm run compile:anonity
 
       - name: Run test suite
         run: npm test

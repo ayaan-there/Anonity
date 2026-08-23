@@ -173,14 +173,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('orgKey',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 77 char 1',
+                                     'anonity.compact line 77 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {
           __compactRuntime.typeError('orgKey',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 77 char 1',
+                                     'anonity.compact line 77 char 1',
                                      'Bytes<32>',
                                      sk_0)
         }
@@ -207,14 +207,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('hunterKey',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 82 char 1',
+                                     'anonity.compact line 82 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {
           __compactRuntime.typeError('hunterKey',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 82 char 1',
+                                     'anonity.compact line 82 char 1',
                                      'Bytes<32>',
                                      sk_0)
         }
@@ -242,21 +242,21 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('postBounty',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 91 char 1',
+                                     'anonity.compact line 91 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(amount_0) === 'bigint' && amount_0 >= 0n && amount_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('postBounty',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 91 char 1',
+                                     'anonity.compact line 91 char 1',
                                      'Uint<0..18446744073709551616>',
                                      amount_0)
         }
         if (!(typeof(deadline_0) === 'bigint' && deadline_0 >= 0n && deadline_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('postBounty',
                                      'argument 2 (argument 3 as invoked from Typescript)',
-                                     'veilwork.compact line 91 char 1',
+                                     'anonity.compact line 91 char 1',
                                      'Uint<0..18446744073709551616>',
                                      deadline_0)
         }
@@ -286,14 +286,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('submitReport',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 113 char 1',
+                                     'anonity.compact line 113 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawBountyId_0) === 'bigint' && rawBountyId_0 >= 0n && rawBountyId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('submitReport',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 113 char 1',
+                                     'anonity.compact line 113 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawBountyId_0)
         }
@@ -323,21 +323,21 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('resolveSubmission',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 140 char 1',
+                                     'anonity.compact line 140 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawSubmissionId_0) === 'bigint' && rawSubmissionId_0 >= 0n && rawSubmissionId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('resolveSubmission',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 140 char 1',
+                                     'anonity.compact line 140 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawSubmissionId_0)
         }
         if (!(typeof(rawOutcome_0) === 'bigint' && rawOutcome_0 >= 0n && rawOutcome_0 <= 255n)) {
           __compactRuntime.typeError('resolveSubmission',
                                      'argument 2 (argument 3 as invoked from Typescript)',
-                                     'veilwork.compact line 140 char 1',
+                                     'anonity.compact line 140 char 1',
                                      'Uint<0..256>',
                                      rawOutcome_0)
         }
@@ -367,14 +367,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('getBounty',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 195 char 1',
+                                     'anonity.compact line 195 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawId_0) === 'bigint' && rawId_0 >= 0n && rawId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('getBounty',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 195 char 1',
+                                     'anonity.compact line 195 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawId_0)
         }
@@ -401,14 +401,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('getSubmission',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 202 char 1',
+                                     'anonity.compact line 202 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawId_0) === 'bigint' && rawId_0 >= 0n && rawId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('getSubmission',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'veilwork.compact line 202 char 1',
+                                     'anonity.compact line 202 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawId_0)
         }
@@ -436,7 +436,7 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('getStats',
                                      'argument 1 (as invoked from Typescript)',
-                                     'veilwork.compact line 213 char 1',
+                                     'anonity.compact line 213 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
@@ -675,7 +675,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('orgSecretKey',
                                  'return value',
-                                 'veilwork.compact line 72 char 1',
+                                 'anonity.compact line 72 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -692,7 +692,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('hunterSecretKey',
                                  'return value',
-                                 'veilwork.compact line 73 char 1',
+                                 'anonity.compact line 73 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -717,7 +717,7 @@ export class Contract {
                                                                                                                                                               alignment: _descriptor_5.alignment() } }] } },
                                                                                                                                    { popeq: { cached: true,
                                                                                                                                               result: undefined } }]).value),
-                                                                        'veilwork.compact line 79 char 36'),
+                                                                        'anonity.compact line 79 char 36'),
                                    sk_0]);
   }
   _hunterKey_0(context, partialProofData, sk_0) {
@@ -735,7 +735,7 @@ export class Contract {
                                                                                                                                                               alignment: _descriptor_5.alignment() } }] } },
                                                                                                                                    { popeq: { cached: true,
                                                                                                                                               result: undefined } }]).value),
-                                                                        'veilwork.compact line 84 char 39'),
+                                                                        'anonity.compact line 84 char 39'),
                                    sk_0]);
   }
   _postBounty_0(context, partialProofData, amount_0, deadline_0) {
@@ -865,7 +865,7 @@ export class Contract {
                                        { ins: { cached: true, n: 1 } }]);
     const tmp_1 = ((t1) => {
                     if (t1 > 18446744073709551615n) {
-                      throw new __compactRuntime.CompactError('veilwork.compact line 129 char 28: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                      throw new __compactRuntime.CompactError('anonity.compact line 129 char 28: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                     }
                     return t1;
                   })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -999,7 +999,7 @@ export class Contract {
     if (this._equal_1(outcome_0, 2n)) {
       const tmp_0 = ((t1) => {
                       if (t1 > 18446744073709551615n) {
-                        throw new __compactRuntime.CompactError('veilwork.compact line 154 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                        throw new __compactRuntime.CompactError('anonity.compact line 154 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                       }
                       return t1;
                     })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1056,7 +1056,7 @@ export class Contract {
       if (this._equal_2(outcome_0, 3n)) {
         const tmp_2 = ((t1) => {
                         if (t1 > 18446744073709551615n) {
-                          throw new __compactRuntime.CompactError('veilwork.compact line 158 char 31: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                          throw new __compactRuntime.CompactError('anonity.compact line 158 char 31: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                         }
                         return t1;
                       })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1112,7 +1112,7 @@ export class Contract {
       } else {
         const tmp_4 = ((t1) => {
                         if (t1 > 18446744073709551615n) {
-                          throw new __compactRuntime.CompactError('veilwork.compact line 162 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                          throw new __compactRuntime.CompactError('anonity.compact line 162 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                         }
                         return t1;
                       })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1185,7 +1185,7 @@ export class Contract {
                                                                                           result: undefined } }]).value);
         const tmp_6 = ((t1) => {
                         if (t1 > 18446744073709551615n) {
-                          throw new __compactRuntime.CompactError('veilwork.compact line 165 char 30: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                          throw new __compactRuntime.CompactError('anonity.compact line 165 char 30: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                         }
                         return t1;
                       })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1467,7 +1467,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('member',
                                      'argument 1',
-                                     'veilwork.compact line 48 char 1',
+                                     'anonity.compact line 48 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }
@@ -1496,7 +1496,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('lookup',
                                      'argument 1',
-                                     'veilwork.compact line 48 char 1',
+                                     'anonity.compact line 48 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }
@@ -1576,7 +1576,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('member',
                                      'argument 1',
-                                     'veilwork.compact line 49 char 1',
+                                     'anonity.compact line 49 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }
@@ -1605,7 +1605,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('lookup',
                                      'argument 1',
-                                     'veilwork.compact line 49 char 1',
+                                     'anonity.compact line 49 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }

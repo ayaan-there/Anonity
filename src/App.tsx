@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useMidnight } from './hooks/useMidnight';
 import WalletConnect from './components/WalletConnect';
 import CircuitCall from './components/CircuitCall';
-import VeilWork from './components/VeilWork';
+import BountyBoard from './components/BountyBoard';
 import './App.css';
 
 const NETWORK = (() => {
@@ -16,8 +16,8 @@ const CONTRACT = (() => {
   return v.trim();
 })();
 
-const VEILWORK_CONTRACT = (() => {
-  const v = import.meta.env.VITE_VEILWORK_CONTRACT as string | undefined;
+const BOARD_CONTRACT = (() => {
+  const v = import.meta.env.VITE_ANONITY_CONTRACT as string | undefined;
   if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
   return v.trim();
 })();
@@ -45,12 +45,12 @@ const App: React.FC = () => {
     clearError,
     bounties,
     submissions,
-    vwStats,
-    vwReady,
+    boardStats,
+    boardReady,
     postBounty,
     submitReport,
     resolveSubmission,
-    refreshVeilwork,
+    refreshBoard,
   } = useMidnight();
 
   useEffect(() => {
@@ -196,19 +196,19 @@ const App: React.FC = () => {
           noWallet={noWallet}
         />
 
-        <VeilWork
+        <BountyBoard
           network={NETWORK}
-          contract={VEILWORK_CONTRACT}
+          contract={BOARD_CONTRACT}
           bounties={bounties}
           submissions={submissions}
-          stats={vwStats}
+          stats={boardStats}
           loading={loading}
           isConnected={isConnected}
-          vwReady={vwReady}
+          boardReady={boardReady}
           postBounty={postBounty}
           submitReport={submitReport}
           resolveSubmission={resolveSubmission}
-          refreshVeilwork={refreshVeilwork}
+          refreshBoard={refreshBoard}
         />
 
         <aside

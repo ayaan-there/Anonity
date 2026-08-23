@@ -3,6 +3,8 @@ import { mkdirSync, cpSync, existsSync } from 'node:fs';
 const assets = [
   ['contracts/managed/counter/keys', 'public/keys'],
   ['contracts/managed/counter/zkir', 'public/zkir'],
+  ['contracts/managed/anonity/keys', 'public/keys'],
+  ['contracts/managed/anonity/zkir', 'public/zkir'],
 ];
 
 for (const [src, dest] of assets) {

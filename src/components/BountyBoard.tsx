@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import type { BountyRow, SubmissionRow, VwStats } from '../hooks/useMidnight';
+import type { BountyRow, BoardStats, SubmissionRow } from '../hooks/useMidnight';
 
-type VeilWorkProps = {
+type BountyBoardProps = {
   network: string;
   contract: string | null;
   bounties: BountyRow[];
   submissions: SubmissionRow[];
-  stats: VwStats | null;
+  stats: BoardStats | null;
   loading: boolean;
   isConnected: boolean;
-  vwReady: boolean;
+  boardReady: boolean;
   postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
   submitReport: (bountyId: bigint) => Promise<void>;
   resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
-  refreshVeilwork: () => Promise<void>;
+  refreshBoard: () => Promise<void>;
 };
 
 const shortHex = (bytes: Uint8Array): string =>
@@ -23,7 +23,7 @@ const shortHex = (bytes: Uint8Array): string =>
 
 const OUTCOME_LABEL = ['PENDING', 'VALID — PAID', 'DUPLICATE — REFUNDED', 'SLOP — BURNED'];
 
-const VeilWork: React.FC<VeilWorkProps> = ({
+const BountyBoard: React.FC<BountyBoardProps> = ({
   network,
   contract,
   bounties,
@@ -31,11 +31,11 @@ const VeilWork: React.FC<VeilWorkProps> = ({
   stats,
   loading,
   isConnected,
-  vwReady,
+  boardReady,
   postBounty,
   submitReport,
   resolveSubmission,
-  refreshVeilwork,
+  refreshBoard,
 }) => {
   const [amount, setAmount] = useState('100');
   const [deadline, setDeadline] = useState('999999');
@@ -85,7 +85,7 @@ const VeilWork: React.FC<VeilWorkProps> = ({
         </h3>
         <div className="mono" style={{ fontSize: 11, color: 'var(--color-on-surface-variant)' }}>
           {network.toUpperCase()} · {contract ? `${contract.slice(0, 10)}…${contract.slice(-6)}` : 'NOT DEPLOYED'}
-          {!vwReady && contract && ' · AWAITING WALLET'}
+          {!boardReady && contract && ' · AWAITING WALLET'}
         </div>
       </div>
 
@@ -116,7 +116,7 @@ const VeilWork: React.FC<VeilWorkProps> = ({
         </div>
       )}
 
-      {!isConnected || !vwReady ? (
+      {!isConnected || !boardReady ? (
         <div
           className="mono"
           style={{
@@ -129,7 +129,7 @@ const VeilWork: React.FC<VeilWorkProps> = ({
         >
           {contract
             ? 'CONNECT YOUR WALLET ABOVE TO USE THE BOUNTY BOARD.'
-            : 'BOUNTY CONTRACT NOT DEPLOYED YET — SET VITE_VEILWORK_CONTRACT AFTER PREPROD DEPLOY.'}
+            : 'BOUNTY CONTRACT NOT DEPLOYED YET — SET VITE_ANONITY_CONTRACT AFTER PREPROD DEPLOY.'}
         </div>
       ) : (
         <>
@@ -251,7 +251,7 @@ const VeilWork: React.FC<VeilWorkProps> = ({
             </table>
           </div>
 
-          <button className="btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => run(refreshVeilwork, 'REFRESHED')} disabled={loading}>
+          <button className="btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => run(refreshBoard, 'REFRESHED')} disabled={loading}>
             REFRESH BOARD
           </button>
         </>
@@ -260,4 +260,4 @@ const VeilWork: React.FC<VeilWorkProps> = ({
   );
 };
 
-export default VeilWork;
+export default BountyBoard;

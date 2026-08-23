@@ -1,5 +1,5 @@
 /**
- * Level 4 — VeilWork (Anonity bounty core) contract tests.
+ * Level 4 — Anonity bounty core contract tests.
  *
  * Runs against the compiled artifacts in `contracts/managed/veilwork/`
  * using @midnight-ntwrk/compact-runtime — no network, no proof server,
@@ -30,7 +30,7 @@ import {
 } from '@midnight-ntwrk/compact-runtime';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const managedDir = path.resolve(__dirname, '..', 'contracts', 'managed', 'veilwork');
+const managedDir = path.resolve(__dirname, '..', 'contracts', 'managed', 'anonity');
 const contractModule = await import(pathToFileURL(path.join(managedDir, 'contract', 'index.js')).href);
 
 const { Contract, ledger } = contractModule;
@@ -157,7 +157,7 @@ const withOpenSubmission = () => {
 
 // ─── Tests: circuit logic ─────────────────────────────────────────────
 
-describe('VeilWork — circuit logic', () => {
+describe('Anonity bounty core — circuit logic', () => {
     test('postBounty creates an open bounty with the supplied amount and deadline', () => {
         const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
         sim.postBounty(100n, 7777n);
@@ -213,7 +213,7 @@ describe('VeilWork — circuit logic', () => {
 
 // ─── Tests: state transitions ─────────────────────────────────────────
 
-describe('VeilWork — state transitions', () => {
+describe('Anonity bounty core — state transitions', () => {
     test('bounty and submission ids allocate monotonically from 1', () => {
         const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
         sim.postBounty(10n, 1n);
@@ -273,7 +273,7 @@ describe('VeilWork — state transitions', () => {
 
 // ─── Tests: privacy & authorisation ───────────────────────────────────
 
-describe('VeilWork — privacy & authorisation', () => {
+describe('Anonity bounty core — privacy & authorisation', () => {
     test('only the org that posted the bounty can resolve its submissions', () => {
         const sim = withOpenSubmission();
         sim.switchOrg(sk(0x99)); // attacker org
