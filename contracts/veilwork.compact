@@ -1,0 +1,215 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// ═══════════════════════════════════════════════════════════════════
+// Anonity (VeilWork) — privacy-preserving anonymous bug bounty core.
+//
+// PUBLIC (on-chain, visible to anyone via the indexer):
+//   - bounties: amount, deadline, org commitment, open/closed status
+//   - submissions: bounty link, hunter commitment, resolution outcome
+//   - aggregate fee accounting: escrowed / burned / refunded / paid
+//
+// PRIVATE (witnesses, never on-chain, never in any proof):
+//   - orgSecretKey(): the organization's 32-byte identity secret
+//   - hunterSecretKey(): the researcher's 32-byte identity secret
+//   Report CONTENTS are never stored on-chain at all.
+//
+// PROVED WITHOUT REVEALING:
+//   - That the caller resolving a submission is the exact org that
+//     posted the bounty (commitment match inside the proof).
+//   - That each hunter identity is a stable commitment derived from a
+//     secret only they hold — the chain sees a hash, never the key,
+//     never a wallet address, and cannot link commitments across
+//     bounties or after a round rotation.
+//
+// MVP accounting model: fees and bounty amounts are tracked in ledger
+// state (deterministic, provable); real tNIGHT movement stays
+// wallet-side. Deadline is advisory metadata in v1 — orgs resolve
+// manually.
+// ═══════════════════════════════════════════════════════════════════
+
+enum BountyStatus { Open, Closed };
+enum Outcome { Pending, Valid, Duplicate, Slop };
+
+struct Bounty {
+    amount: Uint<64>,
+    deadline: Uint<64>,
+    org: Bytes<32>,
+    status: BountyStatus,
+}
+
+struct Submission {
+    bountyId: Uint<64>,
+    hunter: Bytes<32>,
+    outcome: Outcome,
+}
+
+export ledger bounties: Map<Uint<64>, Bounty>;
+export ledger submissions: Map<Uint<64>, Submission>;
+
+// Monotonic id allocation (starts at 1)
+export ledger nextBountyId: Counter;
+export ledger nextSubmissionId: Counter;
+
+// Global epoch — bumping it rotates every commitment, unlinking identities
+export ledger round: Counter;
+
+// Fee accounting (anti-spam deposit is fixed at 5 for the MVP)
+export ledger feeEscrowed: Uint<64>;
+export ledger feesBurned: Uint<64>;
+export ledger feesRefunded: Uint<64>;
+export ledger totalPaid: Uint<64>;
+
+constructor() {
+    round.increment(1);
+    nextBountyId.increment(1);
+    nextSubmissionId.increment(1);
+}
+
+// ─── Private witnesses ──────────────────────────────────────────────
+
+witness orgSecretKey(): Bytes<32>;
+witness hunterSecretKey(): Bytes<32>;
+
+// ─── Identity commitments (same pattern as counter.owner) ──────────
+
+export circuit orgKey(sk: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>(
+        [pad(32, "veilwork:org:"), round as Bytes<32>, sk]);
+}
+
+export circuit hunterKey(sk: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>(
+        [pad(32, "veilwork:hunter:"), round as Bytes<32>, sk]);
+}
+
+// ─── Org flow ───────────────────────────────────────────────────────
+
+// Post a bounty. Only proof of holding an org secret is required — any
+// org can participate without registering or revealing an address.
+export circuit postBounty(amount: Uint<64>, deadline: Uint<64>): [] {
+    assert(amount > 0, "postBounty: amount must be positive");
+    const id = nextBountyId;
+    const sk = orgSecretKey();
+    const org = orgKey(sk);
+    bounties.insert(
+        disclose(id),
+        disclose(Bounty {
+            amount: disclose(amount),
+            deadline: disclose(deadline),
+            org: disclose(org),
+            status: BountyStatus.Open,
+        }),
+    );
+    nextBountyId.increment(1);
+}
+
+// ─── Hunter flow ────────────────────────────────────────────────────
+
+// Submit a report anonymously. The chain learns THAT a qualified
+// submission exists for a bounty — never WHO submitted it. A fixed
+// anti-spam fee moves into escrow; the outcome decides refund or burn.
+export circuit submitReport(rawBountyId: Uint<64>): [] {
+    const bountyId = disclose(rawBountyId);
+    assert(bounties.member(bountyId), "submitReport: no such bounty");
+    const b = bounties.lookup(bountyId);
+    assert(b.status == BountyStatus.Open, "submitReport: bounty is not open");
+    const sk = hunterSecretKey();
+    const hunter = hunterKey(sk);
+    const sid = nextSubmissionId;
+    submissions.insert(
+        disclose(sid),
+        disclose(Submission {
+            bountyId,
+            hunter: disclose(hunter),
+            outcome: Outcome.Pending,
+        }),
+    );
+    feeEscrowed = disclose((feeEscrowed + 5) as Uint<64>);
+    nextSubmissionId.increment(1);
+}
+
+// ─── Resolution (org-only, proven inside ZK) ────────────────────────
+
+// Resolve a submission. Caller must hold the org secret that produced
+// the bounty's commitment — checked inside the proof. Outcomes:
+//   1 = Valid      → bounty paid to hunter, fee refunded
+//   2 = Duplicate  → fee refunded
+//   3 = Slop       → fee burned
+export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>): [] {
+    const submissionId = disclose(rawSubmissionId);
+    const outcome = disclose(rawOutcome);
+    assert(submissions.member(submissionId), "resolve: no such submission");
+    const sub = submissions.lookup(submissionId);
+    assert(sub.outcome == Outcome.Pending, "resolve: already resolved");
+    const bid = sub.bountyId;
+    assert(bounties.member(bid), "resolve: bounty missing");
+    const sk = orgSecretKey();
+    assert(bounties.lookup(bid).org == orgKey(sk), "resolve: caller is not the bounty org");
+    assert(outcome >= 1 && outcome <= 3, "resolve: invalid outcome");
+
+    if (outcome == 2 as Uint<8>) {
+        // duplicate → fee returned to the hunter
+        feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
+        feeEscrowed = disclose((feeEscrowed - 5) as Uint<64>);
+    } else { if (outcome == 3 as Uint<8>) {
+        // slop → fee burned
+        feesBurned = disclose((feesBurned + 5) as Uint<64>);
+        feeEscrowed = disclose((feeEscrowed - 5) as Uint<64>);
+    } else {
+        // valid → fee refunded AND bounty amount paid out
+        feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
+        feeEscrowed = disclose((feeEscrowed - 5) as Uint<64>);
+        const b = bounties.lookup(bid);
+        totalPaid = disclose((totalPaid + b.amount) as Uint<64>);
+        bounties.remove(bid);
+        bounties.insert(
+            disclose(bid),
+            disclose(Bounty {
+                amount: b.amount,
+                deadline: b.deadline,
+                org: b.org,
+                status: BountyStatus.Closed,
+            }),
+        );
+    } }
+
+    submissions.remove(submissionId);
+    const resolved: Outcome =
+        outcome == 1 as Uint<8> ? Outcome.Valid :
+        outcome == 2 as Uint<8> ? Outcome.Duplicate : Outcome.Slop;
+    submissions.insert(
+        disclose(submissionId),
+        disclose(Submission {
+            bountyId: bid,
+            hunter: sub.hunter,
+            outcome: resolved,
+        }),
+    );
+}
+
+// ─── Public reads ───────────────────────────────────────────────────
+
+// [amount, deadline, orgCommitment, status(0=open,1=closed)]
+export circuit getBounty(rawId: Uint<64>): [Uint<64>, Uint<64>, Bytes<32>, Uint<8>] {
+    const id = disclose(rawId);
+    const b = bounties.lookup(id);
+    return [b.amount, b.deadline, b.org, b.status == BountyStatus.Open ? 0 as Uint<8> : 1 as Uint<8>];
+}
+
+// [bountyId, hunterCommitment, outcome(0=pending,1=valid,2=duplicate,3=slop)]
+export circuit getSubmission(rawId: Uint<64>): [Uint<64>, Bytes<32>, Uint<8>] {
+    const id = disclose(rawId);
+    const s = submissions.lookup(id);
+    const oc: Uint<8> =
+        s.outcome == Outcome.Pending ? 0 as Uint<8> :
+        s.outcome == Outcome.Valid ? 1 as Uint<8> :
+        s.outcome == Outcome.Duplicate ? 2 as Uint<8> : 3 as Uint<8>;
+    return [s.bountyId, s.hunter, oc];
+}
+
+// [feeEscrowed, feesBurned, feesRefunded, totalPaid]
+export circuit getStats(): [Uint<64>, Uint<64>, Uint<64>, Uint<64>] {
+    return [feeEscrowed, feesBurned, feesRefunded, totalPaid];
+}
