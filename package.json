@@ -15,6 +15,7 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "deploy": "npx tsx src/deploy-counter.ts",
+    "deploy:veilwork": "npx tsx src/deploy-veilwork.ts",
     "test": "npx tsx --test tests/counter.test.ts tests/veilwork.test.ts",
     "check-balance": "npx tsx src/check-balance.ts",
     "network": "npx tsx src/network.ts",
