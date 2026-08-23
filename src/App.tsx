@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useMidnight } from './hooks/useMidnight';
 import WalletConnect from './components/WalletConnect';
 import CircuitCall from './components/CircuitCall';
+import VeilWork from './components/VeilWork';
 import './App.css';
 
 const NETWORK = (() => {
@@ -11,6 +12,12 @@ const NETWORK = (() => {
 
 const CONTRACT = (() => {
   const v = import.meta.env.VITE_DEFAULT_CONTRACT as string | undefined;
+  if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
+  return v.trim();
+})();
+
+const VEILWORK_CONTRACT = (() => {
+  const v = import.meta.env.VITE_VEILWORK_CONTRACT as string | undefined;
   if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
   return v.trim();
 })();
@@ -36,6 +43,14 @@ const App: React.FC = () => {
     lastBlock,
     error,
     clearError,
+    bounties,
+    submissions,
+    vwStats,
+    vwReady,
+    postBounty,
+    submitReport,
+    resolveSubmission,
+    refreshVeilwork,
   } = useMidnight();
 
   useEffect(() => {
@@ -179,6 +194,21 @@ const App: React.FC = () => {
           error={error}
           isConnected={isConnected}
           noWallet={noWallet}
+        />
+
+        <VeilWork
+          network={NETWORK}
+          contract={VEILWORK_CONTRACT}
+          bounties={bounties}
+          submissions={submissions}
+          stats={vwStats}
+          loading={loading}
+          isConnected={isConnected}
+          vwReady={vwReady}
+          postBounty={postBounty}
+          submitReport={submitReport}
+          resolveSubmission={resolveSubmission}
+          refreshVeilwork={refreshVeilwork}
         />
 
         <aside

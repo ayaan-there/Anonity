@@ -20,6 +20,33 @@ import {
   CounterModule,
   type CounterPrivateState,
 } from '../lib/counter-contract';
+import {
+  compiledVeilworkContract,
+  VEILWORK_PRIVATE_STATE_ID,
+  VeilworkModule,
+} from '../lib/veilwork-contract';
+
+export type BountyRow = {
+  id: bigint;
+  amount: bigint;
+  deadline: bigint;
+  org: Uint8Array;
+  status: number;
+};
+
+export type SubmissionRow = {
+  id: bigint;
+  bountyId: bigint;
+  hunter: Uint8Array;
+  outcome: number;
+};
+
+export type VwStats = {
+  feeEscrowed: bigint;
+  feesBurned: bigint;
+  feesRefunded: bigint;
+  totalPaid: bigint;
+};
 
 const INDEXER_GRAPHQL_URL =
   (import.meta.env.VITE_INDEXER_URL as string | undefined) ||
@@ -80,6 +107,56 @@ const fetchCountFromIndexer = async (contractAddress: string): Promise<bigint | 
   }
 };
 
+type VwLedgerView = {
+  bounties: BountyRow[];
+  submissions: SubmissionRow[];
+  stats: VwStats;
+};
+
+const fetchVeilworkState = async (contractAddress: string): Promise<VwLedgerView | null> => {
+  try {
+    const res = await fetch(INDEXER_GRAPHQL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: CONTRACT_STATE_QUERY,
+        variables: { address: contractAddress },
+      }),
+    });
+    const gql = await res.json();
+    if (gql.errors) throw new Error(gql.errors[0]?.message ?? 'Indexer query failed');
+    const stateHex = gql?.data?.contractAction?.state;
+    if (!stateHex) return null;
+    const contractState = CompactContractState.deserialize(hexToBytes(stateHex));
+    const l = VeilworkModule.ledger(contractState.data);
+
+    const bounties: BountyRow[] = [];
+    for (const [id, b] of l.bounties) {
+      bounties.push({ id, amount: b.amount, deadline: b.deadline, org: b.org, status: b.status });
+    }
+    bounties.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+    const submissions: SubmissionRow[] = [];
+    for (const [id, s] of l.submissions) {
+      submissions.push({ id, bountyId: s.bountyId, hunter: s.hunter, outcome: s.outcome });
+    }
+    submissions.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+    return {
+      bounties,
+      submissions,
+      stats: {
+        feeEscrowed: BigInt(l.feeEscrowed),
+        feesBurned: BigInt(l.feesBurned),
+        feesRefunded: BigInt(l.feesRefunded),
+        totalPaid: BigInt(l.totalPaid),
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
 const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
 const WALLET_DETECT_INTERVAL_MS = 100;
 const WALLET_DETECT_TIMEOUT_MS = 5_000;
@@ -109,6 +186,12 @@ const getNetworkId = (): string => {
 
 const getDefaultContractAddress = (): string | null => {
   const v = import.meta.env.VITE_DEFAULT_CONTRACT as string | undefined;
+  if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
+  return v.trim();
+};
+
+const getVeilworkContractAddress = (): string | null => {
+  const v = import.meta.env.VITE_VEILWORK_CONTRACT as string | undefined;
   if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
   return v.trim();
 };
@@ -260,6 +343,14 @@ export interface UseMidnightReturn {
   lastBlock: string | null;
   error: string | null;
   clearError: () => void;
+  bounties: BountyRow[];
+  submissions: SubmissionRow[];
+  vwStats: VwStats | null;
+  vwReady: boolean;
+  postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
+  submitReport: (bountyId: bigint) => Promise<void>;
+  resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
+  refreshVeilwork: () => Promise<void>;
 }
 
 export function useMidnight(): UseMidnightReturn {
@@ -268,6 +359,10 @@ export function useMidnight(): UseMidnightReturn {
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [count, setCount] = useState<bigint | null>(null);
+  const [bounties, setBounties] = useState<BountyRow[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
+  const [vwStats, setVwStats] = useState<VwStats | null>(null);
+  const [vwReady, setVwReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [lastCircuit, setLastCircuit] = useState<string | null>(null);
@@ -278,6 +373,7 @@ export function useMidnight(): UseMidnightReturn {
   const connectedAPIRef = useRef<ConnectedAPI | null>(null);
   const providersRef = useRef<Providers | null>(null);
   const foundContractRef = useRef<any>(null);
+  const vwContractRef = useRef<any>(null);
   const walletStateRef = useRef<WalletState>('detecting');
 
   const fetchOwnerSecret = (): Uint8Array => {
@@ -301,6 +397,16 @@ export function useMidnight(): UseMidnightReturn {
       localStorage.setItem('anonityDemoCounterSecret', Buffer.from(demoSecret).toString('hex'));
     } catch { /* ignore */ }
     return demoSecret;
+  };
+
+  // Public demo identity secrets for the VeilWork bounty board — same
+  // philosophy as the counter demo secret: fixed, shipped in the client,
+  // so any visitor can act as both an org and a hunter on the demo board.
+  const fetchVwSecrets = (): { orgSecretKey: Uint8Array; hunterSecretKey: Uint8Array } => {
+    return {
+      orgSecretKey: Uint8Array.from(Buffer.from('a1'.repeat(32), 'hex')),
+      hunterSecretKey: Uint8Array.from(Buffer.from('b2'.repeat(32), 'hex')),
+    };
   };
 
   useEffect(() => {
@@ -387,6 +493,29 @@ export function useMidnight(): UseMidnightReturn {
       } catch {
         setCount(null);
       }
+
+      const vwAddress = getVeilworkContractAddress();
+      if (vwAddress) {
+        try {
+          const vwSecrets = fetchVwSecrets();
+          const vwFound = await findDeployedContract(providers as any, {
+            compiledContract: compiledVeilworkContract as any,
+            privateStateId: VEILWORK_PRIVATE_STATE_ID,
+            contractAddress: vwAddress,
+            initialPrivateState: vwSecrets as any,
+          });
+          vwContractRef.current = vwFound;
+          setVwReady(true);
+          const vwState = await fetchVeilworkState(vwAddress);
+          if (vwState) {
+            setBounties(vwState.bounties);
+            setSubmissions(vwState.submissions);
+            setVwStats(vwState.stats);
+          }
+        } catch (e: any) {
+          console.warn('VeilWork contract not bound:', e?.message ?? e);
+        }
+      }
     } catch (e: any) {
       const isUserRejected =
         e?.type === 'DAppConnectorAPIError' &&
@@ -401,6 +530,8 @@ export function useMidnight(): UseMidnightReturn {
       connectedAPIRef.current = null;
       providersRef.current = null;
       foundContractRef.current = null;
+      vwContractRef.current = null;
+      setVwReady(false);
     }
   }, [walletState, selectedWalletId]);
 
@@ -412,10 +543,15 @@ export function useMidnight(): UseMidnightReturn {
     connectedAPIRef.current = null;
     providersRef.current = null;
     foundContractRef.current = null;
+    vwContractRef.current = null;
     setAddress(null);
     setCount(null);
     setResult(null);
     setError(null);
+    setVwReady(false);
+    setBounties([]);
+    setSubmissions([]);
+    setVwStats(null);
     setWalletState('ready');
   }, []);
 
@@ -481,6 +617,65 @@ export function useMidnight(): UseMidnightReturn {
     }
   }, []);
 
+  const refreshVeilwork = useCallback(async () => {
+    const vwAddress = getVeilworkContractAddress();
+    if (!vwAddress) return;
+    const vwState = await fetchVeilworkState(vwAddress);
+    if (vwState) {
+      setBounties(vwState.bounties);
+      setSubmissions(vwState.submissions);
+      setVwStats(vwState.stats);
+    }
+  }, []);
+
+  const runVwCircuit = useCallback(
+    async (
+      name: 'postBounty' | 'submitReport' | 'resolveSubmission',
+      ...args: readonly unknown[]
+    ) => {
+      const contract = vwContractRef.current;
+      if (!contract) {
+        setError('VeilWork contract not loaded. Connect wallet first.');
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      setLastCircuit(name);
+      try {
+        const finalized = await (contract.callTx as any)[name](...args);
+        const txId = finalized?.public?.txId;
+        const block = finalized?.public?.blockHeight;
+        setResult(`txId=${txId ?? ''}${block != null ? ` block=${block}` : ''}`);
+        setLastTxId(txId ?? null);
+        setLastBlock(block != null ? String(block) : null);
+        await refreshVeilwork();
+      } catch (e: any) {
+        const msg = deepestErrorMessage(e);
+        setError(`Circuit "${name}" failed: ${msg}`);
+        setLastTxId(null);
+        setLastBlock(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refreshVeilwork],
+  );
+
+  const postBounty = useCallback(
+    (amount: bigint, deadline: bigint) => runVwCircuit('postBounty', amount, deadline),
+    [runVwCircuit],
+  );
+  const submitReport = useCallback(
+    (bountyId: bigint) => runVwCircuit('submitReport', bountyId),
+    [runVwCircuit],
+  );
+  const resolveSubmission = useCallback(
+    (submissionId: bigint, outcome: number) =>
+      runVwCircuit('resolveSubmission', submissionId, BigInt(outcome)),
+    [runVwCircuit],
+  );
+
   return {
     walletState,
     address,
@@ -501,6 +696,14 @@ export function useMidnight(): UseMidnightReturn {
     lastBlock,
     error,
     clearError,
+    bounties,
+    submissions,
+    vwStats,
+    vwReady,
+    postBounty,
+    submitReport,
+    resolveSubmission,
+    refreshVeilwork,
   };
 }
 
