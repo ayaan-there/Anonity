@@ -96,3 +96,6 @@ PRD.md
 
 # Helper shell scripts (dev-only, not for submission)
 *.sh
+
+# Local Stitch design reference files
+design-reference/

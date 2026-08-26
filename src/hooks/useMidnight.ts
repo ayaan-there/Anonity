@@ -15,15 +15,10 @@ import { pipe } from 'fp-ts/function';
 import { ContractState as CompactContractState } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import { inMemoryPrivateStateProvider } from '../lib/in-memory-private-state-provider';
 import {
-  compiledCounterContract,
-  COUNTER_PRIVATE_STATE_ID,
-  CounterModule,
-  type CounterPrivateState,
-} from '../lib/counter-contract';
-import {
   compiledAnonityContract,
   ANONITY_PRIVATE_STATE_ID,
   AnonityModule,
+  type AnonityPrivateState,
 } from '../lib/anonity-contract';
 
 export type BountyRow = {
@@ -83,28 +78,6 @@ const deepestErrorMessage = (e: unknown): string => {
     current = current?.cause ?? current?.failure;
   }
   return last || (typeof e === 'string' ? e : String(e ?? 'Unexpected error'));
-};
-
-const fetchCountFromIndexer = async (contractAddress: string): Promise<bigint | null> => {
-  try {
-    const res = await fetch(INDEXER_GRAPHQL_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: CONTRACT_STATE_QUERY,
-        variables: { address: contractAddress },
-      }),
-    });
-    const gql = await res.json();
-    if (gql.errors) throw new Error(gql.errors[0]?.message ?? 'Indexer query failed');
-    const stateHex = gql?.data?.contractAction?.state;
-    if (!stateHex) return null;
-    const contractState = CompactContractState.deserialize(hexToBytes(stateHex));
-    const ledgerState = CounterModule.ledger(contractState.data);
-    return BigInt(ledgerState.count);
-  } catch {
-    return null;
-  }
 };
 
 type BoardView = {
@@ -182,12 +155,6 @@ type Providers = {
 const getNetworkId = (): string => {
   const v = import.meta.env.VITE_NETWORK_ID as string | undefined;
   return (v && v.trim()) || 'preview';
-};
-
-const getDefaultContractAddress = (): string | null => {
-  const v = import.meta.env.VITE_DEFAULT_CONTRACT as string | undefined;
-  if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
-  return v.trim();
 };
 
 const getBoardContractAddress = (): string | null => {
@@ -269,7 +236,7 @@ const initializeProviders = async (
     fetch.bind(window),
   );
 
-  const privateStateProvider = inMemoryPrivateStateProvider<string, CounterPrivateState>();
+  const privateStateProvider = inMemoryPrivateStateProvider<string, AnonityPrivateState>();
 
   let proofProvider: ProofProvider;
   if (typeof connectedAPI.getProvingProvider === 'function') {
@@ -331,11 +298,6 @@ export interface UseMidnightReturn {
   selectWallet: (id: string) => void;
   connect: () => Promise<void>;
   disconnect: () => void;
-  count: bigint | null;
-  increment: () => Promise<void>;
-  decrement: () => Promise<void>;
-  reset: () => Promise<void>;
-  refreshCount: () => Promise<void>;
   loading: boolean;
   result: string | null;
   lastCircuit: string | null;
@@ -358,7 +320,6 @@ export function useMidnight(): UseMidnightReturn {
   const [address, setAddress] = useState<string | null>(null);
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
-  const [count, setCount] = useState<bigint | null>(null);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [boardStats, setBoardStats] = useState<BoardStats | null>(null);
@@ -372,36 +333,12 @@ export function useMidnight(): UseMidnightReturn {
 
   const connectedAPIRef = useRef<ConnectedAPI | null>(null);
   const providersRef = useRef<Providers | null>(null);
-  const foundContractRef = useRef<any>(null);
   const boardContractRef = useRef<any>(null);
   const walletStateRef = useRef<WalletState>('detecting');
 
-  const fetchOwnerSecret = (): Uint8Array => {
-    if (typeof localStorage !== 'undefined') {
-      const stored = localStorage.getItem('anonityDemoCounterSecret');
-      if (stored) {
-        try {
-          const hex = stored.trim();
-          if (/^[0-9a-fA-F]{64}$/.test(hex)) {
-            return Uint8Array.from(Buffer.from(hex, 'hex'));
-          }
-        } catch { /* ignore */ }
-      }
-    }
-    // Public demo key for the owner-gated demo counter — NOT the real
-    // .midnight-state.json ownerSecret. Anyone may mutate the demo counter.
-    const demoSecret = Uint8Array.from(
-      Buffer.from('0d0b07181203642d951263a16865bfdfc13ad437371645e9f8b2b8ad97ff276f', 'hex'),
-    );
-    try {
-      localStorage.setItem('anonityDemoCounterSecret', Buffer.from(demoSecret).toString('hex'));
-    } catch { /* ignore */ }
-    return demoSecret;
-  };
-
-  // Public demo identity secrets for the Anonity bounty board — same
-  // philosophy as the counter demo secret: fixed, shipped in the client,
-  // so any visitor can act as both an org and a hunter on the demo board.
+  // Public demo identity secrets for the Anonity bounty board — fixed,
+  // shipped in the client, so any visitor can act as both an org and a
+  // hunter on the demo board.
   const fetchboardSecrets = (): { orgSecretKey: Uint8Array; hunterSecretKey: Uint8Array } => {
     return {
       orgSecretKey: Uint8Array.from(Buffer.from('a1'.repeat(32), 'hex')),
@@ -471,50 +408,30 @@ export function useMidnight(): UseMidnightReturn {
       const providers = await initializeProviders(connected, config);
       providersRef.current = providers;
 
-      const contractAddress = getDefaultContractAddress();
-      if (!contractAddress) {
-        setError('No contract address configured. Set VITE_DEFAULT_CONTRACT after deploying to Preprod.');
+      const boardAddress = getBoardContractAddress();
+      if (!boardAddress) {
+        setError('No contract address configured. Set VITE_ANONITY_CONTRACT.');
         return;
       }
-      const secret = fetchOwnerSecret();
-      const initialPrivateState: CounterPrivateState = { secretKey: secret };
-
-      const found = await findDeployedContract(providers as any, {
-        compiledContract: compiledCounterContract as any,
-        privateStateId: COUNTER_PRIVATE_STATE_ID,
-        contractAddress,
-        initialPrivateState: initialPrivateState as any,
-      });
-      foundContractRef.current = found;
 
       try {
-        const initialCount = await fetchCountFromIndexer(contractAddress);
-        setCount(initialCount);
-      } catch {
-        setCount(null);
-      }
-
-      const boardAddress = getBoardContractAddress();
-      if (boardAddress) {
-        try {
-          const boardSecrets = fetchboardSecrets();
-          const boardFound = await findDeployedContract(providers as any, {
-            compiledContract: compiledAnonityContract as any,
-            privateStateId: ANONITY_PRIVATE_STATE_ID,
-            contractAddress: boardAddress,
-            initialPrivateState: boardSecrets as any,
-          });
-          boardContractRef.current = boardFound;
-          setBoardReady(true);
-          const boardState = await fetchBoardState(boardAddress);
-          if (boardState) {
-            setBounties(boardState.bounties);
-            setSubmissions(boardState.submissions);
-            setBoardStats(boardState.stats);
-          }
-        } catch (e: any) {
-          console.warn('Anonity contract not bound:', e?.message ?? e);
+        const boardSecrets = fetchboardSecrets();
+        const boardFound = await findDeployedContract(providers as any, {
+          compiledContract: compiledAnonityContract as any,
+          privateStateId: ANONITY_PRIVATE_STATE_ID,
+          contractAddress: boardAddress,
+          initialPrivateState: boardSecrets as any,
+        });
+        boardContractRef.current = boardFound;
+        setBoardReady(true);
+        const boardState = await fetchBoardState(boardAddress);
+        if (boardState) {
+          setBounties(boardState.bounties);
+          setSubmissions(boardState.submissions);
+          setBoardStats(boardState.stats);
         }
+      } catch (e: any) {
+        console.warn('Anonity contract not bound:', e?.message ?? e);
       }
     } catch (e: any) {
       const isUserRejected =
@@ -529,7 +446,6 @@ export function useMidnight(): UseMidnightReturn {
       setAddress(null);
       connectedAPIRef.current = null;
       providersRef.current = null;
-      foundContractRef.current = null;
       boardContractRef.current = null;
       setBoardReady(false);
     }
@@ -542,10 +458,8 @@ export function useMidnight(): UseMidnightReturn {
   const disconnect = useCallback(() => {
     connectedAPIRef.current = null;
     providersRef.current = null;
-    foundContractRef.current = null;
     boardContractRef.current = null;
     setAddress(null);
-    setCount(null);
     setResult(null);
     setError(null);
     setBoardReady(false);
@@ -556,66 +470,6 @@ export function useMidnight(): UseMidnightReturn {
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
-
-  const runCircuit = useCallback(async (name: 'increment' | 'decrement' | 'reset') => {
-    const contract = foundContractRef.current;
-    if (!contract) {
-      setError('Contract not loaded. Connect wallet first.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setLastCircuit(name);
-    try {
-      const finalized = await contract.callTx[name]();
-      const txId = finalized?.public?.txId;
-      const block = finalized?.public?.blockHeight;
-      setResult(`txId=${txId ?? ''}${block != null ? ` block=${block}` : ''}`);
-      setLastTxId(txId ?? null);
-      setLastBlock(block != null ? String(block) : null);
-      try {
-        const addr = getDefaultContractAddress();
-        if (addr) {
-          const newCount = await fetchCountFromIndexer(addr);
-          if (newCount != null) setCount(newCount);
-        }
-      } catch { /* ignore */ }
-    } catch (e: any) {
-      const msg = deepestErrorMessage(e);
-      setError(`Circuit "${name}" failed: ${msg}`);
-      setLastTxId(null);
-      setLastBlock(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const increment = useCallback(() => runCircuit('increment'), [runCircuit]);
-  const decrement = useCallback(() => runCircuit('decrement'), [runCircuit]);
-  const reset = useCallback(() => runCircuit('reset'), [runCircuit]);
-
-  const refreshCount = useCallback(async () => {
-    const contractAddress = getDefaultContractAddress();
-    if (!contractAddress) {
-      setError('No contract address configured.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const newCount = await fetchCountFromIndexer(contractAddress);
-      if (newCount != null) {
-        setCount(newCount);
-      } else {
-        setError('Could not read count from indexer.');
-      }
-    } catch (e: any) {
-      setError(`refresh failed: ${e?.message ?? String(e)}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const refreshBoard = useCallback(async () => {
     const boardAddress = getBoardContractAddress();
@@ -684,11 +538,6 @@ export function useMidnight(): UseMidnightReturn {
     selectWallet,
     connect,
     disconnect,
-    count,
-    increment,
-    decrement,
-    reset,
-    refreshCount,
     loading,
     result,
     lastCircuit,

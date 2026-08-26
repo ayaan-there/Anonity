@@ -1,278 +1,163 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMidnight } from './hooks/useMidnight';
-import WalletConnect from './components/WalletConnect';
-import CircuitCall from './components/CircuitCall';
-import BountyBoard from './components/BountyBoard';
-import './App.css';
-
-const NETWORK = (() => {
-  const v = import.meta.env.VITE_NETWORK_ID as string | undefined;
-  return (v && v.trim()) || 'preview';
-})();
-
-const CONTRACT = (() => {
-  const v = import.meta.env.VITE_DEFAULT_CONTRACT as string | undefined;
-  if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
-  return v.trim();
-})();
-
-const BOARD_CONTRACT = (() => {
-  const v = import.meta.env.VITE_ANONITY_CONTRACT as string | undefined;
-  if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
-  return v.trim();
-})();
+import { parseHash, navigate, type Route } from './router';
+import SecureAccess from './components/SecureAccess';
+import DiscoverPrograms from './components/DiscoverPrograms';
+import ProgramDetails from './components/ProgramDetails';
+import CreateProgram from './components/CreateProgram';
+import SubmitReport from './components/SubmitReport';
 
 const App: React.FC = () => {
-  const {
-    walletState,
-    address,
-    availableWallets,
-    selectedWalletId,
-    selectWallet,
-    connect,
-    disconnect,
-    count,
-    increment,
-    decrement,
-    reset,
-    refreshCount,
-    loading,
-    result,
-    lastCircuit,
-    lastTxId,
-    lastBlock,
-    error,
-    clearError,
-    bounties,
-    submissions,
-    boardStats,
-    boardReady,
-    postBounty,
-    submitReport,
-    resolveSubmission,
-    refreshBoard,
-  } = useMidnight();
+  const midnight = useMidnight();
+  const [route, setRoute] = useState<Route>(parseHash);
 
   useEffect(() => {
-    if (!error) return;
-    const t = setTimeout(clearError, 9000);
-    return () => clearTimeout(t);
-  }, [error, clearError]);
+    const onHash = () => setRoute(parseHash());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
-  const isConnected = walletState === 'connected';
-  const isConnecting = walletState === 'connecting';
-  const isDetecting = walletState === 'detecting';
-  const noWallet = walletState === 'no-wallet';
-  const isReady = walletState === 'ready' || isConnected;
+  const isConnected = midnight.walletState === 'connected';
+  const isConnecting = midnight.walletState === 'connecting';
+  const shortAddr = midnight.address
+    ? `${midnight.address.slice(0, 10)}…${midnight.address.slice(-6)}`
+    : null;
 
-  const SidebarStatus: React.FC = () => (
-    <>
-      <div
-        style={{
-          padding: 12,
-          border: '1px solid var(--color-border)',
-          background: 'var(--color-surface)',
-          color: 'var(--color-on-surface-variant)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 11,
-          lineHeight: 1.55,
-        }}
-      >
-        {isDetecting
-          ? 'DETECTING WALLET INJECTOR…'
-          : noWallet
-            ? 'NO WALLET FOUND.'
-            : isConnected
-              ? loading
-                ? 'GENERATING ZK PROOF · LOCAL PROVER.'
-                : result
-                  ? 'PROOF ACCEPTED · WAITING FOR NEXT CALL.'
-                  : 'WALLET READY · AWAITING CIRCUIT CALL.'
-              : 'SYSTEM READY / WAITING FOR WALLET CONNECTION'}
-      </div>
-
-      {isConnected && address && (
-        <div style={{ marginTop: 16 }}>
-          <div
-            className="caps-xs"
-            style={{ color: 'var(--color-on-surface-variant)', marginBottom: 4 }}
-          >
-            UNSHIELDED ADDRESS
-          </div>
-          <div
-            className="mono"
-            style={{
-              fontSize: 11,
-              color: 'var(--color-secondary)',
-              wordBreak: 'break-all',
-              lineHeight: 1.5,
-            }}
-          >
-            {address}
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 32 }}>
-        <h4
-          className="caps-sm"
-          style={{
-            color: 'var(--color-on-surface-variant)',
-            margin: '0 0 12px',
-            textTransform: 'uppercase',
-          }}
-        >
-          STACK
-        </h4>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          <StackRow label="LANG">COMPACT</StackRow>
-          <StackRow label="WALLET">
-            {selectedWalletId
-              ? selectedWalletId.toLowerCase() === '1am'
-                ? '1AM'
-                : selectedWalletId.toLowerCase().includes('lace')
-                  ? 'LACE'
-                  : 'DAPP CONNECTOR'
-              : 'DAPP CONNECTOR'}
-          </StackRow>
-          <StackRow label="PROOF">LOCAL ZK</StackRow>
-        </ul>
-      </div>
-    </>
+  const NavLink: React.FC<{ to: string; label: string; active: boolean }> = ({ to, label, active }) => (
+    <a
+      href={`#${to}`}
+      className="an-label"
+      style={{
+        color: active ? 'var(--an-primary)' : 'var(--an-secondary)',
+        textDecoration: 'none',
+        padding: '4px 0',
+        borderBottom: active ? '1px solid var(--an-primary)' : '1px solid transparent',
+        transition: 'color var(--an-fast) ease, border-color var(--an-fast) ease',
+      }}
+    >
+      {label}
+    </a>
   );
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--color-bg)',
-        color: 'var(--color-on-surface)',
-      }}
-    >
-      <WalletConnect
-        address={address}
-        network={NETWORK}
-        isConnected={isConnected}
-        connecting={isConnecting}
-        detecting={isDetecting}
-        noWallet={noWallet}
-        ready={isReady}
-        error={error}
-        availableWallets={availableWallets}
-        selectedWalletId={selectedWalletId}
-        onSelectWallet={selectWallet}
-        disconnect={disconnect}
-        onConnect={connect}
-      />
-
-      <main
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--an-bg)' }}>
+      <nav
+        className="an-brutal-b"
         style={{
-          flexGrow: 1,
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr)',
-          gap: 1,
-          background: 'var(--color-border)',
-          width: '100%',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px var(--an-margin-safe)',
+          background: 'var(--an-bg)',
         }}
-        className="anonty-grid"
       >
-        <CircuitCall
-          network={NETWORK}
-          contract={CONTRACT}
-          count={count}
-          increment={increment}
-          decrement={decrement}
-          reset={reset}
-          refreshCount={refreshCount}
-          loading={loading}
-          result={result}
-          lastCircuit={lastCircuit}
-          lastTxId={lastTxId}
-          lastBlock={lastBlock}
-          error={error}
-          isConnected={isConnected}
-          noWallet={noWallet}
-        />
-
-        <BountyBoard
-          network={NETWORK}
-          contract={BOARD_CONTRACT}
-          bounties={bounties}
-          submissions={submissions}
-          stats={boardStats}
-          loading={loading}
-          isConnected={isConnected}
-          boardReady={boardReady}
-          postBounty={postBounty}
-          submitReport={submitReport}
-          resolveSubmission={resolveSubmission}
-          refreshBoard={refreshBoard}
-        />
-
-        <aside
+        <a
+          href="#/programs"
+          className="an-mono"
           style={{
-            background: 'var(--color-bg)',
-            borderLeft: '1px solid var(--color-border)',
-            display: 'flex',
-            flexDirection: 'column',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            fontSize: 16,
+            color: 'var(--an-primary)',
+            textDecoration: 'none',
           }}
         >
-          <div
-            style={{
-              padding: 20,
-              borderBottom: '1px solid var(--color-border)',
-              background: 'var(--color-surface)',
-            }}
-          >
-            <h3 className="caps" style={{ color: 'var(--color-primary)', margin: 0 }}>
-              PRIVACY STATUS
-            </h3>
-          </div>
-          <div style={{ padding: 20, flexGrow: 1 }}>
-            <SidebarStatus />
-          </div>
-        </aside>
+          ANONITY
+        </a>
+        <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
+          <NavLink to="/programs" label="PROGRAMS" active={route.page === 'programs' || route.page === 'program'} />
+          <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
+          {isConnected && shortAddr ? (
+            <>
+              <span className="an-label an-dim" title={midnight.address ?? ''}>
+                {shortAddr}
+              </span>
+              <button
+                onClick={() => navigate('/profile')}
+                aria-label="Profile"
+                className="msx"
+                style={{ background: 'none', border: 'none', color: 'var(--an-primary)', cursor: 'pointer', fontSize: 20, padding: 0 }}
+              >
+                account_circle
+              </button>
+              <button onClick={midnight.disconnect} className="an-label" style={{ background: 'none', border: 'none', color: 'var(--an-secondary)', cursor: 'pointer', textDecoration: 'underline' }}>
+                DISCONNECT
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => (isConnecting ? undefined : navigate('/access'))}
+              disabled={isConnecting}
+              className="an-btn an-btn--ghost"
+              style={{ width: 'auto', padding: '8px 14px', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}
+            >
+              {isConnecting ? 'CONNECTING…' : 'CONNECT WALLET'}
+            </button>
+          )}
+        </div>
+      </nav>
+
+      <main style={{ flexGrow: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: 'var(--an-stack-lg) var(--an-margin-safe) var(--an-stack-md)' }}>
+        {route.page === 'access' && <SecureAccess midnight={midnight} />}
+        {route.page === 'programs' && <DiscoverPrograms midnight={midnight} />}
+        {route.page === 'program' && <ProgramDetails midnight={midnight} id={route.id} />}
+        {route.page === 'create' && <CreateProgram midnight={midnight} />}
+        {route.page === 'submit' && <SubmitReport midnight={midnight} bountyId={route.bountyId} />}
+        {route.page === 'inbox' && <InboxPlaceholder midnight={midnight} />}
+        {route.page === 'profile' && <ProfilePlaceholder midnight={midnight} />}
       </main>
 
       <footer
+        className="an-brutal-t"
         style={{
-          background: 'var(--color-surface-container-lowest)',
-          borderTop: '1px solid var(--color-border)',
           display: 'flex',
-          flexDirection: 'column',
           justifyContent: 'space-between',
           alignItems: 'center',
-          width: '100%',
-          padding: '24px 32px',
-          gap: 8,
-          zIndex: 50,
+          flexWrap: 'wrap',
+          gap: 'var(--an-stack-sm)',
+          padding: '12px var(--an-margin-safe)',
+          background: 'var(--an-surface-lowest)',
         }}
-        className="footer-row"
       >
-        <div className="caps" style={{ color: 'var(--color-secondary)' }}>
-          ANONITY / L2 SUBMISSION
+        <span className="an-label an-secondary-text">© 2026 ANONITY. IDENTITY REDACTED. ALL RIGHTS RESERVED.</span>
+        <div style={{ display: 'flex', gap: 'var(--an-stack-md)' }}>
+          {['PRIVACY', 'TERMS', 'ENCRYPTION'].map((l) => (
+            <a key={l} href="#/programs" className="an-label an-dim" style={{ textDecoration: 'none' }}>
+              {l}
+            </a>
+          ))}
         </div>
       </footer>
     </div>
   );
 };
 
-const StackRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <li
-    style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      padding: '6px 0',
-      fontSize: 12,
-      fontFamily: 'var(--font-mono)',
-      letterSpacing: '0.04em',
-    }}
-  >
-    <span style={{ color: 'var(--color-on-surface-variant)' }}>{label}</span>
-    <span style={{ color: 'var(--color-primary)' }}>{children}</span>
-  </li>
+const InboxPlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) => (
+  <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
+    <h1 className="an-hook">INBOX</h1>
+    <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
+      {midnight.walletState === 'connected'
+        ? 'NO NOTIFICATIONS. YOUR ACTIVITY IS PRIVATE — EVEN FROM US.'
+        : 'CONNECT A WALLET TO RECEIVE ENCRYPTED ALERTS.'}
+    </p>
+  </div>
+);
+
+const ProfilePlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) => (
+  <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
+    <h1 className="an-hook">PROFILE</h1>
+    <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)', wordBreak: 'break-all' }}>
+      {midnight.address ?? 'NOT CONNECTED'}
+    </p>
+    <p className="an-label an-dim" style={{ marginTop: 'var(--an-gutter)' }}>
+      IDENTITY = COMMITMENT. NO NAME. NO EMAIL. NO HISTORY.
+    </p>
+  </div>
 );
 
 export default App;
