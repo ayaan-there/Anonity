@@ -185,6 +185,20 @@ select.an-input { appearance: none; }
   user-select: none;
 }
 
+/* ── landing redaction bars ───────────────────────────────────── */
+.redaction-bar {
+  display: inline-block;
+  background-color: #ffffff;
+  color: #ffffff;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+.redaction-bar:hover {
+  background-color: transparent;
+}
+
 /* ── motion helpers ───────────────────────────────────────────── */
 @keyframes an-rise {
   from { opacity: 0; transform: translateY(8px); }

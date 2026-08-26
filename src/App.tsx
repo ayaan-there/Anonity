@@ -3,6 +3,7 @@ import { useMidnight } from './hooks/useMidnight';
 import { parseHash, navigate, type Route } from './router';
 import { NotificationBell, AvatarSquare } from './components/NavWidgets';
 import SecureAccess from './components/SecureAccess';
+import Landing from './components/Landing';
 import DiscoverPrograms from './components/DiscoverPrograms';
 import ProgramDetails from './components/ProgramDetails';
 import CreateProgram from './components/CreateProgram';
@@ -56,7 +57,7 @@ const App: React.FC = () => {
         }}
       >
         <a
-          href="#/programs"
+          href="#/"
           className="an-mono"
           style={{
             fontWeight: 700,
@@ -126,6 +127,7 @@ const App: React.FC = () => {
       </nav>
 
       <main style={{ flexGrow: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: 'var(--an-stack-lg) var(--an-margin-safe) var(--an-stack-md)' }}>
+        {route.page === 'landing' && <Landing midnight={midnight} />}
         {route.page === 'access' && <SecureAccess midnight={midnight} />}
         {route.page === 'programs' && <DiscoverPrograms midnight={midnight} />}
         {route.page === 'program' && <ProgramDetails midnight={midnight} id={route.id} />}

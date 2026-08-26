@@ -1,4 +1,5 @@
 export type Route =
+  | { page: 'landing' }
   | { page: 'programs' }
   | { page: 'program'; id: bigint }
   | { page: 'create' }
@@ -11,6 +12,12 @@ export const parseHash = (): Route => {
   const h = window.location.hash.replace(/^#\/?/, '');
   const [seg, arg] = h.split('/');
   switch (seg) {
+    case '':
+    case 'landing':
+    case 'home':
+      return { page: 'landing' };
+    case 'programs':
+      return { page: 'programs' };
     case 'program':
       return arg ? { page: 'program', id: BigInt(arg) } : { page: 'programs' };
     case 'create':
@@ -24,7 +31,7 @@ export const parseHash = (): Route => {
     case 'access':
       return { page: 'access' };
     default:
-      return { page: 'programs' };
+      return { page: 'landing' };
   }
 };
 
