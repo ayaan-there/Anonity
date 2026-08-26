@@ -5,14 +5,18 @@ import { navigate } from '../router';
 type Props = { midnight: ReturnType<typeof useMidnight> };
 
 const SecureAccess: React.FC<Props> = ({ midnight }) => {
-  const { walletState, availableWallets, selectedWalletId, selectWallet, connect, error } = midnight;
+  const { walletState, availableWallets, connect, error } = midnight;
   const isConnected = walletState === 'connected';
+  const connecting = walletState === 'connecting';
 
   useEffect(() => {
     if (isConnected) navigate('/programs');
   }, [isConnected]);
 
-  const connecting = walletState === 'connecting';
+  const enterAs = (persona: 'org' | 'hunter') => {
+    midnight.setPersona(persona);
+    void connect();
+  };
 
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', padding: 'var(--an-stack-lg) 0' }}>
@@ -42,47 +46,62 @@ const SecureAccess: React.FC<Props> = ({ midnight }) => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)', marginTop: 'var(--an-stack-sm)' }}>
-          <span className="an-label an-dim">&gt;_ SELECT WALLET</span>
+          <span className="an-label an-dim">&gt;_ CHOOSE YOUR SIDE</span>
 
-          {availableWallets.length === 0 && walletState === 'no-wallet' && (
+          {walletState === 'no-wallet' && (
             <p className="an-dense" style={{ color: 'var(--an-error)', margin: 0 }}>
               NO MIDNIGHT WALLET DETECTED. INSTALL LACE OR 1AM, THEN RELOAD.
             </p>
           )}
 
-          <div role="radiogroup" aria-label="Wallet" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)' }}>
-            {availableWallets.map((id) => {
-              const label = id.toLowerCase().includes('1am') ? '1AM — PROVES IN-BROWSER' : id.toUpperCase();
-              const active = selectedWalletId === id;
-              return (
-                <button
-                  key={id}
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => selectWallet(id)}
-                  className="an-label"
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px',
-                    background: active ? 'var(--an-surface-high)' : 'var(--an-surface-low)',
-                    border: `1px solid ${active ? 'var(--an-primary)' : 'var(--an-outline-variant)'}`,
-                    color: 'var(--an-primary)',
-                    cursor: 'pointer',
-                    transition: 'border-color var(--an-fast) ease, background-color var(--an-fast) ease',
-                  }}
-                >
-                  {label}
-                  <span className="msx">{active ? 'radio_button_checked' : 'radio_button_unchecked'}</span>
-                </button>
-              );
-            })}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--an-gutter)' }}>
+            <button
+              onClick={() => enterAs('org')}
+              disabled={connecting || availableWallets.length === 0}
+              className="an-brutal"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--an-unit)',
+                padding: 'var(--an-gutter)',
+                background: 'var(--an-surface-low)',
+                color: 'var(--an-primary)',
+                cursor: connecting ? 'wait' : 'pointer',
+                textAlign: 'left',
+                transition: 'border-color var(--an-fast) ease, background-color var(--an-fast) ease, transform 160ms var(--an-ease-out)',
+              }}
+            >
+              <span className="msx" style={{ fontSize: 28 }}>apartment</span>
+              <span className="an-label">CONTINUE AS ORGANIZATION</span>
+              <span className="an-dense an-dim">POST PROGRAMS · TRIAGE REPORTS · PAY OUT</span>
+            </button>
+            <button
+              onClick={() => enterAs('hunter')}
+              disabled={connecting || availableWallets.length === 0}
+              className="an-brutal"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--an-unit)',
+                padding: 'var(--an-gutter)',
+                background: 'var(--an-surface-low)',
+                color: 'var(--an-primary)',
+                cursor: connecting ? 'wait' : 'pointer',
+                textAlign: 'left',
+                transition: 'border-color var(--an-fast) ease, background-color var(--an-fast) ease, transform 160ms var(--an-ease-out)',
+              }}
+            >
+              <span className="msx" style={{ fontSize: 28 }}>target</span>
+              <span className="an-label">CONTINUE AS HACKER</span>
+              <span className="an-dense an-dim">BROWSE TARGETS · SUBMIT REPORTS · STAY ANONYMOUS</span>
+            </button>
           </div>
 
-          <button onClick={() => connect()} disabled={connecting || availableWallets.length === 0} className="an-btn" style={{ marginTop: 'var(--an-stack-sm)' }}>
-            {connecting ? 'CONNECTING…' : 'CONNECT'}
-          </button>
+          {connecting && (
+            <p className="an-label an-secondary-text" style={{ margin: 0, textAlign: 'center' }}>
+              GENERATING ZK PROOF SESSION…
+            </p>
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--an-unit)', marginTop: 'var(--an-unit)' }}>

@@ -290,6 +290,18 @@ const initializeProviders = async (
   };
 };
 
+export type Persona = 'org' | 'hunter';
+const PERSONA_KEY = 'anonityPersona';
+
+const loadPersona = (): Persona | null => {
+  try {
+    const v = localStorage.getItem(PERSONA_KEY);
+    return v === 'org' || v === 'hunter' ? v : null;
+  } catch {
+    return null;
+  }
+};
+
 export interface UseMidnightReturn {
   walletState: WalletState;
   address: string | null;
@@ -309,6 +321,8 @@ export interface UseMidnightReturn {
   submissions: SubmissionRow[];
   boardStats: BoardStats | null;
   boardReady: boolean;
+  persona: Persona | null;
+  setPersona: (p: Persona | null) => void;
   postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
   submitReport: (bountyId: bigint) => Promise<void>;
   resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
@@ -324,6 +338,7 @@ export function useMidnight(): UseMidnightReturn {
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [boardStats, setBoardStats] = useState<BoardStats | null>(null);
   const [boardReady, setBoardReady] = useState(false);
+  const [persona, setPersonaState] = useState<Persona | null>(loadPersona);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [lastCircuit, setLastCircuit] = useState<string | null>(null);
@@ -471,6 +486,14 @@ export function useMidnight(): UseMidnightReturn {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const setPersona = useCallback((p: Persona | null) => {
+    setPersonaState(p);
+    try {
+      if (p) localStorage.setItem(PERSONA_KEY, p);
+      else localStorage.removeItem(PERSONA_KEY);
+    } catch { /* ignore */ }
+  }, []);
+
   const refreshBoard = useCallback(async () => {
     const boardAddress = getBoardContractAddress();
     if (!boardAddress) return;
@@ -549,6 +572,8 @@ export function useMidnight(): UseMidnightReturn {
     submissions,
     boardStats,
     boardReady,
+    persona,
+    setPersona,
     postBounty,
     submitReport,
     resolveSubmission,

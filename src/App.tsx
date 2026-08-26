@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useMidnight } from './hooks/useMidnight';
 import { parseHash, navigate, type Route } from './router';
+import { NotificationBell, AvatarSquare } from './components/NavWidgets';
 import SecureAccess from './components/SecureAccess';
 import DiscoverPrograms from './components/DiscoverPrograms';
 import ProgramDetails from './components/ProgramDetails';
@@ -69,23 +70,45 @@ const App: React.FC = () => {
         </a>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
           <NavLink to="/programs" label="PROGRAMS" active={route.page === 'programs' || route.page === 'program'} />
-          <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />
+          {isConnected && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
         </div>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
           {isConnected && shortAddr ? (
             <>
-              <span className="an-label an-dim" title={midnight.address ?? ''}>
-                {shortAddr}
-              </span>
+              {midnight.persona && (
+                <select
+                  aria-label="Persona"
+                  value={midnight.persona}
+                  onChange={(e) => midnight.setPersona(e.target.value as 'org' | 'hunter')}
+                  className="an-label"
+                  style={{
+                    background: 'var(--an-surface-low)',
+                    border: '1px solid var(--an-outline-variant)',
+                    color: 'var(--an-accent)',
+                    padding: '4px 6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="org">ORG MODE</option>
+                  <option value="hunter">HACKER MODE</option>
+                </select>
+              )}
+              <NotificationBell midnight={midnight} />
               <button
                 onClick={() => navigate('/profile')}
                 aria-label="Profile"
-                className="msx"
-                style={{ background: 'none', border: 'none', color: 'var(--an-primary)', cursor: 'pointer', fontSize: 20, padding: 0 }}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
               >
-                account_circle
+                <AvatarSquare address={midnight.address ?? ''} />
               </button>
-              <button onClick={midnight.disconnect} className="an-label" style={{ background: 'none', border: 'none', color: 'var(--an-secondary)', cursor: 'pointer', textDecoration: 'underline' }}>
+              <button
+                onClick={() => {
+                  midnight.disconnect();
+                  navigate('/programs');
+                }}
+                className="an-label"
+                style={{ background: 'none', border: 'none', color: 'var(--an-secondary)', cursor: 'pointer', textDecoration: 'underline' }}
+              >
                 DISCONNECT
               </button>
             </>
@@ -96,7 +119,7 @@ const App: React.FC = () => {
               className="an-btn an-btn--ghost"
               style={{ width: 'auto', padding: '8px 14px', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}
             >
-              {isConnecting ? 'CONNECTING…' : 'CONNECT WALLET'}
+              {isConnecting ? 'CONNECTING…' : 'CONNECT'}
             </button>
           )}
         </div>
@@ -137,14 +160,27 @@ const App: React.FC = () => {
   );
 };
 
-const InboxPlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) => (
-  <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
-    <h1 className="an-hook">INBOX</h1>
-    <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
-      {midnight.walletState === 'connected'
-        ? 'NO NOTIFICATIONS. YOUR ACTIVITY IS PRIVATE — EVEN FROM US.'
-        : 'CONNECT A WALLET TO RECEIVE ENCRYPTED ALERTS.'}
-    </p>
+const InboxPlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) =>
+  midnight.walletState !== 'connected' ? (
+    <Centered>
+      <h1 className="an-hook">INBOX</h1>
+      <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
+        CONNECT A WALLET TO RECEIVE ACTIVITY ALERTS.
+      </p>
+      <a href="#/access" className="an-btn" style={{ width: 'auto' }}>CONNECT</a>
+    </Centered>
+  ) : (
+    <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
+      <h1 className="an-hook">INBOX</h1>
+      <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
+        NO NOTIFICATIONS. YOUR ACTIVITY IS PRIVATE — EVEN FROM US.
+      </p>
+    </div>
+  );
+
+const Centered: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--an-stack-md)', textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
+    {children}
   </div>
 );
 

@@ -65,7 +65,7 @@ const ProgramDetails: React.FC<Props> = ({ midnight, id }) => {
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--an-gutter)' }}>
           <h2 className="an-punchline">SUBMISSIONS ({subs.length})</h2>
-          {bounty.status === 0 && (
+          {bounty.status === 0 && (midnight.persona === 'hunter' ? (
             <a
               href={`#/submit/${id.toString()}`}
               className="an-btn"
@@ -73,7 +73,15 @@ const ProgramDetails: React.FC<Props> = ({ midnight, id }) => {
             >
               SUBMIT A REPORT
             </a>
-          )}
+          ) : midnight.persona === null ? (
+            <a
+              href="#/access"
+              className="an-label an-dim"
+              style={{ textDecoration: 'none' }}
+            >
+              CONNECT AS HACKER TO SUBMIT →
+            </a>
+          ) : null)}
         </div>
 
         {subs.length === 0 ? (

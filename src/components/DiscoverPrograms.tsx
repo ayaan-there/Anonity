@@ -139,9 +139,11 @@ const DiscoverPrograms: React.FC<Props> = ({ midnight }) => {
         </div>
       </div>
 
-      <a href="#/create" className="an-btn" style={{ width: 'auto', alignSelf: 'flex-start' }}>
-        + POST A BOUNTY
-      </a>
+      {midnight.persona === 'org' && (
+        <a href="#/create" className="an-btn" style={{ width: 'auto', alignSelf: 'flex-start' }}>
+          + POST A BOUNTY
+        </a>
+      )}
 
       {filtered.length === 0 ? (
         <div className="an-brutal" style={{ padding: 'var(--an-stack-lg)', textAlign: 'center' }}>
