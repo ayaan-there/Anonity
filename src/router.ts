@@ -6,7 +6,8 @@ export type Route =
   | { page: 'submit'; bountyId: bigint | null }
   | { page: 'inbox' }
   | { page: 'profile' }
-  | { page: 'access' };
+  | { page: 'access' }
+  | { page: 'orgs' };
 
 export const parseHash = (): Route => {
   const h = window.location.hash.replace(/^#\/?/, '');
@@ -30,6 +31,8 @@ export const parseHash = (): Route => {
       return { page: 'profile' };
     case 'access':
       return { page: 'access' };
+    case 'orgs':
+      return { page: 'orgs' };
     default:
       return { page: 'landing' };
   }

@@ -3,6 +3,7 @@ import { useMidnight } from './hooks/useMidnight';
 import { parseHash, navigate, type Route } from './router';
 import { NotificationBell, AvatarSquare } from './components/NavWidgets';
 import SecureAccess from './components/SecureAccess';
+import OrgsPage from './components/OrgsPage';
 import Landing from './components/Landing';
 import DiscoverPrograms from './components/DiscoverPrograms';
 import ProgramDetails from './components/ProgramDetails';
@@ -71,6 +72,7 @@ const App: React.FC = () => {
         </a>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
           <NavLink to="/programs" label="PROGRAMS" active={route.page === 'programs' || route.page === 'program'} />
+          {!isConnected && <NavLink to="/orgs" label="FOR ORGS" active={route.page === 'orgs'} />}
           {isConnected && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
         </div>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
@@ -129,6 +131,7 @@ const App: React.FC = () => {
       <main style={{ flexGrow: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: 'var(--an-stack-lg) var(--an-margin-safe) var(--an-stack-md)' }}>
         {route.page === 'landing' && <Landing midnight={midnight} />}
         {route.page === 'access' && <SecureAccess midnight={midnight} />}
+        {route.page === 'orgs' && <OrgsPage midnight={midnight} />}
         {route.page === 'programs' && <DiscoverPrograms midnight={midnight} />}
         {route.page === 'program' && <ProgramDetails midnight={midnight} id={route.id} />}
         {route.page === 'create' && <CreateProgram midnight={midnight} />}

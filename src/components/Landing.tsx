@@ -35,7 +35,7 @@ const Landing: React.FC<Props> = () => {
               >
                 I'M A HACKER [GOOD FAITH OBV.] →
               </button>
-              <button onClick={() => navigate('/access')} className="an-btn an-btn--ghost" style={{ width: 'auto', borderColor: '#60a5fa', boxShadow: 'rgba(96, 165, 250, 0.15) 0px 0px 15px' }}
+              <button onClick={() => navigate('/orgs')} className="an-btn an-btn--ghost" style={{ width: 'auto', borderColor: '#60a5fa', boxShadow: 'rgba(96, 165, 250, 0.15) 0px 0px 15px' }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#60a5fa')}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--an-surface-lowest)')}
               >
