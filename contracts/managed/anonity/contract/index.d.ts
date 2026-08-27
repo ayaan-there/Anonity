@@ -11,6 +11,10 @@ export type ImpureCircuits<PS> = {
   postBounty(context: __compactRuntime.CircuitContext<PS>,
              amount_0: bigint,
              deadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+  updateBounty(context: __compactRuntime.CircuitContext<PS>,
+               rawId_0: bigint,
+               rawAmount_0: bigint,
+               rawDeadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   submitReport(context: __compactRuntime.CircuitContext<PS>,
                rawBountyId_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   resolveSubmission(context: __compactRuntime.CircuitContext<PS>,
@@ -35,6 +39,10 @@ export type ProvableCircuits<PS> = {
   postBounty(context: __compactRuntime.CircuitContext<PS>,
              amount_0: bigint,
              deadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+  updateBounty(context: __compactRuntime.CircuitContext<PS>,
+               rawId_0: bigint,
+               rawAmount_0: bigint,
+               rawDeadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   submitReport(context: __compactRuntime.CircuitContext<PS>,
                rawBountyId_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   resolveSubmission(context: __compactRuntime.CircuitContext<PS>,
@@ -62,6 +70,10 @@ export type Circuits<PS> = {
   postBounty(context: __compactRuntime.CircuitContext<PS>,
              amount_0: bigint,
              deadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+  updateBounty(context: __compactRuntime.CircuitContext<PS>,
+               rawId_0: bigint,
+               rawAmount_0: bigint,
+               rawDeadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   submitReport(context: __compactRuntime.CircuitContext<PS>,
                rawBountyId_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   resolveSubmission(context: __compactRuntime.CircuitContext<PS>,

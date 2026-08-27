@@ -29,18 +29,21 @@ const Landing: React.FC<Props> = () => {
               Build a reputation, not an exposure trail. Prove the bug. Not who you are.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--an-gutter)', marginTop: 'var(--an-stack-sm)' }}>
-              <button onClick={() => navigate('/access')} className="an-btn" style={{ width: 'auto', borderColor: 'var(--an-accent)', boxShadow: 'rgba(74, 222, 128, 0.2) 0px 0px 15px' }}
+              <button onClick={() => navigate('/login')} className="an-btn" style={{ width: 'auto', borderColor: 'var(--an-accent)', boxShadow: 'rgba(74, 222, 128, 0.2) 0px 0px 15px' }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--an-accent)')}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')}
               >
                 I'M A HACKER [GOOD FAITH OBV.] →
               </button>
-              <button onClick={() => navigate('/orgs')} className="an-btn an-btn--ghost" style={{ width: 'auto', borderColor: '#60a5fa', boxShadow: 'rgba(96, 165, 250, 0.15) 0px 0px 15px' }}
+              <button onClick={() => navigate('/login-org')} className="an-btn an-btn--ghost" style={{ width: 'auto', borderColor: '#60a5fa', boxShadow: 'rgba(96, 165, 250, 0.15) 0px 0px 15px' }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#60a5fa')}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--an-surface-lowest)')}
               >
                 I'M AN ORGANIZATION →
               </button>
+              <a href="#/orgs" className="an-label an-dim" style={{ alignSelf: 'flex-start', marginTop: 'var(--an-unit)', textDecoration: 'none', borderBottom: '1px solid var(--an-outline-variant)' }}>
+                CONTACTED BY A HACKER? REACH OUT →
+              </a>
             </div>
           </div>
 

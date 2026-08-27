@@ -66,6 +66,39 @@
       }
     },
     {
+      "name": "updateBounty",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "rawId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "rawAmount",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "rawDeadline",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
       "name": "submitReport",
       "pure": false,
       "proof": true,

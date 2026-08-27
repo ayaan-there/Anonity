@@ -44,8 +44,8 @@ const CreateProgram: React.FC<Props> = ({ midnight }) => {
 
         {!boardReady ? (
           <Centered>
-            <p className="an-punchline an-secondary-text">CONNECT A WALLET TO POST.</p>
-            <a href="#/access" className="an-btn" style={{ width: 'auto' }}>CONNECT WALLET</a>
+            <p className="an-punchline an-secondary-text">LOGIN AS AN ORGANIZATION TO POST.</p>
+            <a href="#/login-org" className="an-btn" style={{ width: 'auto' }}>ORG LOGIN</a>
           </Centered>
         ) : (
           <>

@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useMidnight } from './hooks/useMidnight';
 import { parseHash, navigate, type Route } from './router';
 import { NotificationBell, AvatarSquare } from './components/NavWidgets';
-import SecureAccess from './components/SecureAccess';
+import Login from './components/Login';
 import OrgsPage from './components/OrgsPage';
 import Landing from './components/Landing';
 import DiscoverPrograms from './components/DiscoverPrograms';
 import ProgramDetails from './components/ProgramDetails';
 import CreateProgram from './components/CreateProgram';
 import SubmitReport from './components/SubmitReport';
+import Dashboard from './components/Dashboard';
+import Inbox from './components/Inbox';
+import EditProgram from './components/EditProgram';
 
 const App: React.FC = () => {
   const midnight = useMidnight();
@@ -72,6 +75,7 @@ const App: React.FC = () => {
         </a>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
           <NavLink to="/programs" label="PROGRAMS" active={route.page === 'programs' || route.page === 'program'} />
+          {midnight.persona === 'org' && <NavLink to="/dashboard" label="DASHBOARD" active={route.page === 'dashboard'} />}
           {!isConnected && <NavLink to="/orgs" label="FOR ORGS" active={route.page === 'orgs'} />}
           {isConnected && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
         </div>
@@ -117,12 +121,12 @@ const App: React.FC = () => {
             </>
           ) : (
             <button
-              onClick={() => (isConnecting ? undefined : navigate('/access'))}
+              onClick={() => (isConnecting ? undefined : navigate('/login'))}
               disabled={isConnecting}
               className="an-btn an-btn--ghost"
               style={{ width: 'auto', padding: '8px 14px', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}
             >
-              {isConnecting ? 'CONNECTING…' : 'CONNECT'}
+              {isConnecting ? 'CONNECTING…' : 'LOGIN'}
             </button>
           )}
         </div>
@@ -130,13 +134,16 @@ const App: React.FC = () => {
 
       <main style={{ flexGrow: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: 'var(--an-stack-lg) var(--an-margin-safe) var(--an-stack-md)' }}>
         {route.page === 'landing' && <Landing midnight={midnight} />}
-        {route.page === 'access' && <SecureAccess midnight={midnight} />}
+        {route.page === 'login' && <Login midnight={midnight} role="hunter" />}
+        {route.page === 'login-org' && <Login midnight={midnight} role="org" />}
         {route.page === 'orgs' && <OrgsPage midnight={midnight} />}
+        {route.page === 'dashboard' && <Dashboard midnight={midnight} />}
+        {route.page === 'edit' && <EditProgram midnight={midnight} id={route.id} />}
         {route.page === 'programs' && <DiscoverPrograms midnight={midnight} />}
         {route.page === 'program' && <ProgramDetails midnight={midnight} id={route.id} />}
         {route.page === 'create' && <CreateProgram midnight={midnight} />}
         {route.page === 'submit' && <SubmitReport midnight={midnight} bountyId={route.bountyId} />}
-        {route.page === 'inbox' && <InboxPlaceholder midnight={midnight} />}
+        {route.page === 'inbox' && <Inbox midnight={midnight} />}
         {route.page === 'profile' && <ProfilePlaceholder midnight={midnight} />}
       </main>
 
@@ -164,30 +171,6 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-const InboxPlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) =>
-  midnight.walletState !== 'connected' ? (
-    <Centered>
-      <h1 className="an-hook">INBOX</h1>
-      <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
-        CONNECT A WALLET TO RECEIVE ACTIVITY ALERTS.
-      </p>
-      <a href="#/access" className="an-btn" style={{ width: 'auto' }}>CONNECT</a>
-    </Centered>
-  ) : (
-    <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
-      <h1 className="an-hook">INBOX</h1>
-      <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
-        NO NOTIFICATIONS. YOUR ACTIVITY IS PRIVATE — EVEN FROM US.
-      </p>
-    </div>
-  );
-
-const Centered: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--an-stack-md)', textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
-    {children}
-  </div>
-);
 
 const ProfilePlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) => (
   <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>

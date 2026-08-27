@@ -105,6 +105,30 @@ export circuit postBounty(amount: Uint<64>, deadline: Uint<64>): [] {
     nextBountyId.increment(1);
 }
 
+// Edit an open bounty's amount/deadline. Caller proves they hold the
+// posting org's secret — no on-chain identity ever changes hands.
+export circuit updateBounty(rawId: Uint<64>, rawAmount: Uint<64>, rawDeadline: Uint<64>): [] {
+    const id = disclose(rawId);
+    const amount = disclose(rawAmount);
+    const deadline = disclose(rawDeadline);
+    assert(amount > 0, "updateBounty: amount must be positive");
+    assert(bounties.member(id), "updateBounty: no such bounty");
+    const b = bounties.lookup(id);
+    assert(b.status == BountyStatus.Open, "updateBounty: bounty is not open");
+    const sk = orgSecretKey();
+    assert(b.org == orgKey(sk), "updateBounty: caller is not the bounty org");
+    bounties.remove(id);
+    bounties.insert(
+        disclose(id),
+        disclose(Bounty {
+            amount,
+            deadline,
+            org: b.org,
+            status: BountyStatus.Open,
+        }),
+    );
+}
+
 // ─── Hunter flow ────────────────────────────────────────────────────
 
 // Submit a report anonymously. The chain learns THAT a qualified

@@ -75,11 +75,11 @@ const ProgramDetails: React.FC<Props> = ({ midnight, id }) => {
             </a>
           ) : midnight.persona === null ? (
             <a
-              href="#/access"
+              href="#/login"
               className="an-label an-dim"
               style={{ textDecoration: 'none' }}
             >
-              CONNECT AS HACKER TO SUBMIT →
+              LOGIN AS HACKER TO SUBMIT →
             </a>
           ) : null)}
         </div>

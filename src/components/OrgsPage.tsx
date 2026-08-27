@@ -110,7 +110,7 @@ const OrgsPage: React.FC<Props> = ({ midnight }) => {
                 <p className="an-dense an-secondary-text" style={{ margin: 'var(--an-gutter) 0' }}>
                   NEXT STEP: CONNECT YOUR WALLET IN ORGANIZATION MODE TO POST YOUR FIRST PROGRAM.
                 </p>
-                <button onClick={() => navigate('/access')} className="an-btn" style={{ width: 'auto' }}>
+                <button onClick={() => navigate('/login-org')} className="an-btn" style={{ width: 'auto' }}>
                   CONNECT WALLET →
                 </button>
               </div>

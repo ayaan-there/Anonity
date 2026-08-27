@@ -326,6 +326,7 @@ export interface UseMidnightReturn {
   postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
   submitReport: (bountyId: bigint) => Promise<void>;
   resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
+  updateBounty: (id: bigint, amount: bigint, deadline: bigint) => Promise<void>;
   refreshBoard: () => Promise<void>;
 }
 
@@ -397,6 +398,27 @@ export function useMidnight(): UseMidnightReturn {
       cancelled = true;
       clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
+
+  // Public board reads: guests and post-login routing need bounties
+  // without a wallet connection. Poll the indexer on a timer.
+  useEffect(() => {
+    const addr = getBoardContractAddress();
+    if (!addr) return;
+    let cancelled = false;
+    const load = async () => {
+      const s = await fetchBoardState(addr);
+      if (cancelled || !s) return;
+      setBounties(s.bounties);
+      setSubmissions(s.submissions);
+      setBoardStats(s.stats);
+    };
+    void load();
+    const t = setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
     };
   }, []);
 
@@ -507,7 +529,7 @@ export function useMidnight(): UseMidnightReturn {
 
   const runBoardCircuit = useCallback(
     async (
-      name: 'postBounty' | 'submitReport' | 'resolveSubmission',
+      name: 'postBounty' | 'submitReport' | 'resolveSubmission' | 'updateBounty',
       ...args: readonly unknown[]
     ) => {
       const contract = boardContractRef.current;
@@ -552,6 +574,11 @@ export function useMidnight(): UseMidnightReturn {
       runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome)),
     [runBoardCircuit],
   );
+  const updateBounty = useCallback(
+    (id: bigint, amount: bigint, deadline: bigint) =>
+      runBoardCircuit('updateBounty', id, amount, deadline),
+    [runBoardCircuit],
+  );
 
   return {
     walletState,
@@ -577,6 +604,7 @@ export function useMidnight(): UseMidnightReturn {
     postBounty,
     submitReport,
     resolveSubmission,
+    updateBounty,
     refreshBoard,
   };
 }

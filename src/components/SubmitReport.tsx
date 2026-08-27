@@ -51,8 +51,8 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
           </div>
         ) : !boardReady ? (
           <div style={{ textAlign: 'center' }}>
-            <p className="an-punchline an-secondary-text">CONNECT A WALLET TO SUBMIT.</p>
-            <a href="#/access" className="an-btn" style={{ width: 'auto', marginTop: 'var(--an-gutter)' }}>CONNECT WALLET</a>
+            <p className="an-punchline an-secondary-text">LOGIN AS A HACKER TO SUBMIT.</p>
+            <a href="#/login" className="an-btn" style={{ width: 'auto', marginTop: 'var(--an-gutter)' }}>LOGIN</a>
           </div>
         ) : openBounties.length === 0 ? (
           <p className="an-dense an-secondary-text">NO OPEN PROGRAMS RIGHT NOW. CHECK BACK SOON.</p>

@@ -119,6 +119,11 @@ class VeilworkSimulator {
         return this.getLedger();
     }
 
+    updateBounty(id: bigint, amount: bigint, deadline: bigint) {
+        this.circuitContext = this.contract.impureCircuits.updateBounty(this.circuitContext, id, amount, deadline).context;
+        return this.getLedger();
+    }
+
     getBounty(id: bigint): [bigint, bigint, Uint8Array, bigint] {
         return this.contract.impureCircuits.getBounty(this.circuitContext, id).result;
     }
@@ -155,7 +160,41 @@ const withOpenSubmission = () => {
     return sim;
 };
 
-// ─── Tests: circuit logic ─────────────────────────────────────────────
+// ─── Tests: program editing ─────────────────────────────────────────
+
+describe('Anonity — org program editing', () => {
+    test('org can edit amount and deadline on an open bounty', () => {
+        const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
+        sim.postBounty(100n, 9999n);
+        sim.updateBounty(1n, 250n, 8888n);
+        const [amount, deadline, , status] = sim.getBounty(1n);
+        assert.equal(amount, 250n);
+        assert.equal(deadline, 8888n);
+        assert.equal(status, 0n, 'bounty stays open after edit');
+    });
+
+    test('another org cannot edit a bounty they did not post', () => {
+        const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
+        sim.postBounty(100n, 9999n);
+        sim.switchOrg(sk(0x99));
+        assert.throws(
+            () => sim.updateBounty(1n, 1n, 1n),
+            (err: any) => err instanceof Error && /not the bounty org/.test(err.message),
+        );
+    });
+
+    test('closed bounties cannot be edited', () => {
+        const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
+        sim.postBounty(100n, 9999n);
+        sim.submitReport(1n);
+        sim.resolve(1n, VALID); // closes bounty 1
+        assert.throws(
+            () => sim.updateBounty(1n, 200n, 8888n),
+            (err: any) => err instanceof Error && /not open/.test(err.message),
+        );
+    });
+});
+
 
 describe('Anonity bounty core — circuit logic', () => {
     test('postBounty creates an open bounty with the supplied amount and deadline', () => {
