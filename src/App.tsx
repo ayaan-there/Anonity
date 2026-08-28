@@ -12,10 +12,21 @@ import SubmitReport from './components/SubmitReport';
 import Dashboard from './components/Dashboard';
 import Inbox from './components/Inbox';
 import EditProgram from './components/EditProgram';
+import { useSession } from './hooks/useSession';
+import { initAuth, signOut } from './lib/supabase';
 
 const App: React.FC = () => {
   const midnight = useMidnight();
+  const session = useSession();
   const [route, setRoute] = useState<Route>(parseHash);
+
+  useEffect(() => { void initAuth(); }, []);
+
+  // Persona follows the supabase role — an org account opens org tooling
+  const { setPersona } = midnight;
+  useEffect(() => {
+    if (session.role) setPersona(session.role);
+  }, [session.role, setPersona]);
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash());
@@ -80,43 +91,54 @@ const App: React.FC = () => {
           {isConnected && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
         </div>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
-          {isConnected && shortAddr ? (
+          {session.email ? (
             <>
               {midnight.persona && (
-                <select
-                  aria-label="Persona"
-                  value={midnight.persona}
-                  onChange={(e) => midnight.setPersona(e.target.value as 'org' | 'hunter')}
+                <span
                   className="an-label"
                   style={{
                     background: 'var(--an-surface-low)',
                     border: '1px solid var(--an-outline-variant)',
                     color: 'var(--an-accent)',
                     padding: '4px 6px',
-                    cursor: 'pointer',
                   }}
                 >
-                  <option value="org">ORG MODE</option>
-                  <option value="hunter">HACKER MODE</option>
-                </select>
+                  {midnight.persona === 'org' ? 'ORG' : 'HACKER'}
+                </span>
               )}
-              <NotificationBell midnight={midnight} />
-              <button
-                onClick={() => navigate('/profile')}
-                aria-label="Profile"
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-              >
-                <AvatarSquare address={midnight.address ?? ''} />
-              </button>
+              {!isConnected ? (
+                <button
+                  onClick={() => (isConnecting ? undefined : midnight.connect())}
+                  disabled={isConnecting}
+                  className="an-btn"
+                  style={{ width: 'auto', padding: '8px 14px', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}
+                >
+                  {isConnecting ? 'CONNECTING…' : 'CONNECT WALLET'}
+                </button>
+              ) : shortAddr ? (
+                <>
+                  <NotificationBell midnight={midnight} />
+                  <button
+                    onClick={() => navigate('/profile')}
+                    aria-label="Profile"
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  >
+                    <AvatarSquare address={midnight.address ?? ''} />
+                  </button>
+                </>
+              ) : null}
+              <span className="an-label an-dim">{session.email}</span>
               <button
                 onClick={() => {
+                  void signOut();
                   midnight.disconnect();
-                  navigate('/programs');
+                  midnight.setPersona(null);
+                  navigate('/');
                 }}
                 className="an-label"
                 style={{ background: 'none', border: 'none', color: 'var(--an-secondary)', cursor: 'pointer', textDecoration: 'underline' }}
               >
-                DISCONNECT
+                LOGOUT
               </button>
             </>
           ) : (

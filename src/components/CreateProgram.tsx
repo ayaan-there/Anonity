@@ -1,5 +1,6 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
+import { navigate } from '../router';
 
 type Props = { midnight: ReturnType<typeof useMidnight> };
 
@@ -13,7 +14,7 @@ const CreateProgram: React.FC<Props> = ({ midnight }) => {
   const [amount, setAmount] = React.useState('');
   const [deadline, setDeadline] = React.useState('');
   const [busy, setBusy] = React.useState(false);
-  const { postBounty, boardReady, error, clearError } = midnight;
+  const { postBounty, boardReady, persona, error, clearError } = midnight;
 
   React.useEffect(() => {
     if (error) {
@@ -27,7 +28,7 @@ const CreateProgram: React.FC<Props> = ({ midnight }) => {
     setBusy(true);
     try {
       await postBounty(BigInt(amount), BigInt(deadline || '0'));
-      navigateHome();
+      navigate('/dashboard');
     } finally {
       setBusy(false);
     }
@@ -42,10 +43,17 @@ const CreateProgram: React.FC<Props> = ({ midnight }) => {
           POST A BOUNTY ANONYMOUSLY. THE CHAIN STORES A COMMITMENT — NEVER YOUR IDENTITY.
         </p>
 
-        {!boardReady ? (
+        {persona !== 'org' ? (
           <Centered>
-            <p className="an-punchline an-secondary-text">LOGIN AS AN ORGANIZATION TO POST.</p>
+            <p className="an-punchline an-secondary-text">SIGN IN AS AN ORGANIZATION TO POST.</p>
             <a href="#/login-org" className="an-btn" style={{ width: 'auto' }}>ORG LOGIN</a>
+          </Centered>
+        ) : !boardReady ? (
+          <Centered>
+            <p className="an-punchline an-secondary-text">CONNECT YOUR WALLET TO POST ON-CHAIN.</p>
+            <button onClick={() => midnight.connect()} className="an-btn" style={{ width: 'auto' }}>
+              CONNECT WALLET
+            </button>
           </Centered>
         ) : (
           <>
@@ -84,10 +92,6 @@ const CreateProgram: React.FC<Props> = ({ midnight }) => {
       </div>
     </div>
   );
-};
-
-const navigateHome = () => {
-  window.location.hash = '/programs';
 };
 
 export default CreateProgram;

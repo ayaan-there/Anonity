@@ -13,13 +13,10 @@ const Login: React.FC<Props> = ({ midnight, role }) => {
   const [notice, setNotice] = React.useState<string | null>(null);
   const isOrg = role === 'org';
 
-  const afterAuth = () => {
-    midnight.setPersona(role);
-    if (role === 'org') {
-      navigate(midnight.bounties.length === 0 ? '/create' : '/dashboard');
-    } else {
-      navigate('/programs');
-    }
+  const routeAfterAuth = (r: 'hunter' | 'org') => {
+    midnight.setPersona(r);
+    if (r === 'org') navigate(midnight.bounties.length === 0 ? '/create' : '/dashboard');
+    else navigate('/programs');
   };
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -42,11 +39,21 @@ const Login: React.FC<Props> = ({ midnight, role }) => {
 
     try {
       if (mode === 'signup') {
-        await signUpWithEmail(email, password, role);
-        setNotice('CHECK YOUR INBOX TO CONFIRM YOUR ACCOUNT, THEN LOG IN.');
+        const { session: s } = await signUpWithEmail(email, password, role);
+        if (s?.user) {
+          routeAfterAuth(role);
+        } else {
+          setNotice('ACCOUNT CREATED — SIGN IN NOW.');
+        }
       } else {
-        await signInWithEmail(email, password);
-        afterAuth();
+        const { role: accountRole } = await signInWithEmail(email, password);
+        const effective = accountRole ?? role;
+        midnight.setPersona(effective);
+        if (effective === 'org') {
+          navigate(midnight.bounties.length === 0 ? '/create' : '/dashboard');
+        } else {
+          navigate('/programs');
+        }
       }
     } catch (err: any) {
       setNotice(err?.message ?? 'Authentication failed.');
