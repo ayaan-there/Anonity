@@ -99,3 +99,9 @@ PRD.md
 
 # Local Stitch design reference files
 design-reference/
+
+# Local AI skill tooling (npx skills add)
+.skills/
+.agents/
+.claude/
+skills-lock.json
