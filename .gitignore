@@ -27,13 +27,13 @@ contracts/managed/counter/*
 !contracts/managed/counter/contract/
 !contracts/managed/counter/compiler/
 
-# VeilWork compiled artifacts (L4) — same whitelist pattern as counter
-!contracts/managed/veilwork/
-contracts/managed/veilwork/*
-!contracts/managed/veilwork/keys/
-!contracts/managed/veilwork/zkir/
-!contracts/managed/veilwork/contract/
-!contracts/managed/veilwork/compiler/
+# Anonity compiled artifacts (L4) — same whitelist pattern as counter
+!contracts/managed/anonity/
+contracts/managed/anonity/*
+!contracts/managed/anonity/keys/
+!contracts/managed/anonity/zkir/
+!contracts/managed/anonity/contract/
+!contracts/managed/anonity/compiler/
 
 # Deployment info
 deployment.json
