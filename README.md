@@ -138,4 +138,4 @@ See [docs/USAGE.md](docs/USAGE.md) for a plain-English walkthrough: posting boun
 
 ## Product X Profile
 
-[PLACEHOLDER — I will add after creating the account]
+[@ANONITYik9o](https://x.com/ANONITYik9o)
