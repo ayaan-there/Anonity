@@ -116,6 +116,26 @@ See [docs/USAGE.md](docs/USAGE.md) for a plain-English walkthrough: posting boun
 
 ---
 
+## Screenshots
+
+### Contract compilation
+
+![Compile output](screenshots/01-compile.png)
+
+### Test suite
+
+![Test suite](screenshots/02-tests.png)
+
+### Contract deployment
+
+![Deploy output](screenshots/03-deploy.png)
+
+### Repository
+
+![Repository](screenshots/04-repo.png)
+
+---
+
 ## Product X Profile
 
 [PLACEHOLDER — I will add after creating the account]
