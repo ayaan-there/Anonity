@@ -14,7 +14,7 @@ Anonity is anonymous bug bounties on @MidnightNtwrk:
 → submit reports with zero identity
 → get paid via ZK proofs, not KYC
 
-Spam pays a burned fee. Good research stays private. 🕵️
+Spam forfeits its fee to contract custody. Good research stays private. 🕵️
 
 #Midnight #ZeroKnowledge #bugbounty
 
@@ -42,7 +42,7 @@ Try the Anonity bounty board:
 → connect Lace or 1AM
 → post a bounty
 → file an anonymous report (fee refunded if it's valid)
-→ watch slop fees burn 🔥
+→ watch slop fees get forfeited
 
 Demo: https://an0n1ty.vercel.app/
 

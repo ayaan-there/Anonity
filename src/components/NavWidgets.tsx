@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { useMidnight, SubmissionRow } from '../hooks/useMidnight';
 import { navigate } from '../router';
 
-const OUTCOME_LABEL = ['PENDING', 'VALID — PAID', 'DUPLICATE — REFUNDED', 'SLOP — BURNED'];
+const OUTCOME_LABEL = ['PENDING', 'VALID — PAID', 'DUPLICATE — REFUNDED', 'SLOP — FORFEITED'];
 
 /** Deterministic 1:1 square avatar derived from the wallet address. */
 export const AvatarSquare: React.FC<{ address: string; size?: number }> = ({ address, size = 30 }) => {

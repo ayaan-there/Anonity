@@ -8,7 +8,7 @@ import CompactStandardLibrary;
 // PUBLIC (on-chain, visible to anyone via the indexer):
 //   - bounties: amount, deadline, org commitment, open/closed status
 //   - submissions: bounty link, hunter commitment, resolution outcome
-//   - aggregate fee accounting: escrowed / burned / refunded / paid
+//   - aggregate fee accounting: escrowed / forfeited / refunded / paid
 //
 // PRIVATE (witnesses, never on-chain, never in any proof):
 //   - orgSecretKey(): the organization's 32-byte identity secret
@@ -23,10 +23,11 @@ import CompactStandardLibrary;
 //     never a wallet address, and cannot link commitments across
 //     bounties or after a round rotation.
 //
-// MVP accounting model: fees and bounty amounts are tracked in ledger
-// state (deterministic, provable); real tNIGHT movement stays
-// wallet-side. Deadline is advisory metadata in v1 — orgs resolve
-// manually.
+// MVP accounting model: each submission also receives exactly 5 NIGHT
+// from the caller as a native token input. The ledger counters track the
+// fee outcome for reporting; deadline is advisory metadata in v1. The
+// token remains in contract custody until an anonymous refund/forfeit
+// transfer path is added.
 // ═══════════════════════════════════════════════════════════════════
 
 enum BountyStatus { Open, Closed };
@@ -55,7 +56,8 @@ export ledger nextSubmissionId: Counter;
 // Global epoch — bumping it rotates every commitment, unlinking identities
 export ledger round: Counter;
 
-// Fee accounting (anti-spam deposit is fixed at 5 for the MVP)
+// Fee accounting (anti-spam deposit is fixed at 5 NIGHT for the MVP).
+// `feesBurned` is retained as a compatibility field and means forfeited.
 export ledger feeEscrowed: Uint<64>;
 export ledger feesBurned: Uint<64>;
 export ledger feesRefunded: Uint<64>;
@@ -133,12 +135,14 @@ export circuit updateBounty(rawId: Uint<64>, rawAmount: Uint<64>, rawDeadline: U
 
 // Submit a report anonymously. The chain learns THAT a qualified
 // submission exists for a bounty — never WHO submitted it. A fixed
-// anti-spam fee moves into escrow; the outcome decides refund or burn.
+// anti-spam fee moves into escrow; the outcome records refund or forfeit.
 export circuit submitReport(rawBountyId: Uint<64>): [] {
     const bountyId = disclose(rawBountyId);
     assert(bounties.member(bountyId), "submitReport: no such bounty");
     const b = bounties.lookup(bountyId);
     assert(b.status == BountyStatus.Open, "submitReport: bounty is not open");
+    // 5 NIGHT = 5,000,000 atomic units on Preprod.
+    receiveUnshielded(default<Bytes<32>>, disclose(5000000 as Uint<128>));
     const sk = hunterSecretKey();
     const hunter = hunterKey(sk);
     const sid = nextSubmissionId;
@@ -158,9 +162,9 @@ export circuit submitReport(rawBountyId: Uint<64>): [] {
 
 // Resolve a submission. Caller must hold the org secret that produced
 // the bounty's commitment — checked inside the proof. Outcomes:
-//   1 = Valid      → bounty paid to hunter, fee refunded
-//   2 = Duplicate  → fee refunded
-//   3 = Slop       → fee burned
+//   1 = Valid      → bounty marked paid, fee refund recorded
+//   2 = Duplicate  → fee refund recorded
+//   3 = Slop       → fee forfeiture recorded
 export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>): [] {
     const submissionId = disclose(rawSubmissionId);
     const outcome = disclose(rawOutcome);
@@ -174,17 +178,17 @@ export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>)
     assert(outcome >= 1 && outcome <= 3, "resolve: invalid outcome");
 
     if (outcome == 2 as Uint<8>) {
-        // duplicate → fee returned to the hunter
+        // duplicate → refund is recorded; funds remain escrowed until a
+        // shielded recipient transfer path is available.
         feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
-        feeEscrowed = disclose((feeEscrowed - 5) as Uint<64>);
     } else { if (outcome == 3 as Uint<8>) {
-        // slop → fee burned
+        // slop → fee is forfeited to the contract treasury. Compact has no
+        // native burn primitive in this deployment model.
         feesBurned = disclose((feesBurned + 5) as Uint<64>);
-        feeEscrowed = disclose((feeEscrowed - 5) as Uint<64>);
     } else {
-        // valid → fee refunded AND bounty amount paid out
+        // valid → refund and bounty payout are recorded. The payout/refund
+        // transfer must not reveal the hunter's wallet address.
         feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
-        feeEscrowed = disclose((feeEscrowed - 5) as Uint<64>);
         const b = bounties.lookup(bid);
         totalPaid = disclose((totalPaid + b.amount) as Uint<64>);
         bounties.remove(bid);
@@ -233,7 +237,7 @@ export circuit getSubmission(rawId: Uint<64>): [Uint<64>, Bytes<32>, Uint<8>] {
     return [s.bountyId, s.hunter, oc];
 }
 
-// [feeEscrowed, feesBurned, feesRefunded, totalPaid]
+// [feeEscrowed, feesBurned (forfeited), feesRefunded, totalPaid]
 export circuit getStats(): [Uint<64>, Uint<64>, Uint<64>, Uint<64>] {
     return [feeEscrowed, feesBurned, feesRefunded, totalPaid];
 }

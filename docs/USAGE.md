@@ -29,7 +29,7 @@ Click **CONNECT WALLET**, pick your wallet (1AM is preferred when installed), an
 In the **ANONITY BOUNTY BOARD** section:
 
 1. Find the **POST BOUNTY** panel.
-2. Enter an amount (in credits) and a deadline.
+2. Enter a deadline. Individual report payouts are chosen in NIGHT after triage.
 3. Click **POST** and approve the transaction in your wallet.
 4. Your bounty appears in the table with status **OPEN**.
 
@@ -41,9 +41,11 @@ Found something? You don't need anyone's permission:
 
 1. In **SUBMIT REPORT**, pick an open bounty from the dropdown.
 2. Click **SUBMIT** and approve the transaction.
-3. A 5-credit anti-spam fee moves into escrow. You'll get it back if your report is valid or a duplicate — it only burns if triage marks it as slop.
+3. A 5 NIGHT anti-spam fee moves into the contract escrow. Your wallet must hold 5 NIGHT plus DUST for transaction fees. The contract records whether the fee is refundable or forfeited; an anonymous shielded refund transfer is still pending, so the fee remains in contract custody in this MVP.
 
 The chain records that *a* qualified submission exists. It never learns who you are or links you to other reports.
+
+After submitting, open **INBOX** to see your report and any messages from the program's triage team. Report contents and messages are visible only to you and the organization that owns the program.
 
 > **Note:** report contents stay off-chain. Share details through your existing secure channel; the chain handles proof-of-submission and payment rights.
 
@@ -53,16 +55,18 @@ When triage decides an outcome:
 
 1. In **RESOLVE**, pick a pending submission.
 2. Choose the outcome:
-   - **Valid** — bounty paid out, fee refunded, bounty closes
-   - **Duplicate** — fee refunded, bounty stays open
-   - **Slop** — fee burned
+   - **Valid** — bounty marked paid, refund recorded, bounty closes
+   - **Duplicate** — refund recorded, bounty stays open
+   - **Slop** — fee forfeited to contract custody
 3. Click **RESOLVE** and approve the transaction.
 
 Only the organization that posted the bounty can resolve its submissions — this authority is enforced by a zero-knowledge proof, not by addresses.
 
+To contact a researcher, open the report from your dashboard and use the **TRIAGE THREAD** message box. The message appears in the researcher's Inbox without exposing their identity.
+
 ### 6. Watch the board
 
-Click **REFRESH BOARD** any time to re-read the latest state from the Midnight indexer. The stats bar shows live fee accounting: escrowed, burned, refunded, and paid out.
+Click **REFRESH BOARD** any time to re-read the latest state from the Midnight indexer. The stats bar shows live fee accounting: escrowed, forfeited, refunded, and paid out.
 
 ---
 
@@ -73,7 +77,7 @@ Click **REFRESH BOARD** any time to re-read the latest state from the Midnight i
 | That a bounty exists (amount, deadline) | Which wallet posted it |
 | That a submission was made | Who submitted it |
 | The outcome of each submission | Any wallet↔identity link |
-| Fee totals (escrowed/burned/refunded/paid) | The org or hunter secret keys |
+| Fee totals (escrowed/forfeited/refunded/paid) | The org or hunter secret keys |
 
 **How?** Each participant holds a random 32-byte secret key locally. Circuits derive a one-way commitment from it and prove statements about it inside a zero-knowledge proof:
 

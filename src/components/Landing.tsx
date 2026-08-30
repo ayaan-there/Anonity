@@ -23,8 +23,8 @@ const Landing: React.FC<Props> = () => {
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 'var(--an-gutter)', width: '100%' }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'var(--an-stack-md)' }}>
-            <h1 className="an-hook">PEHCHAN ZYADA CHAHIYE YA PAISA?</h1>
-            <h2 className="an-punchline an-dim">PAISA. Pehchan should not follow my brotherrrr</h2>
+            <h1 className="an-hook">FAME OR MONEY?</h1>
+            <h2 className="an-punchline an-dim">MONEY my brotherrrr, Fame shouldn't follow when in cyber.</h2>
             <p className="an-dense" style={{ maxWidth: 640, margin: 0 }}>
               Build a reputation, not an exposure trail. Prove the bug. Not who you are.
             </p>
@@ -166,7 +166,7 @@ const Landing: React.FC<Props> = () => {
               IDENTITY
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, flexGrow: 1, position: 'relative', zIndex: 1 }} className="an-dense">
-              {[['FULL_NAME', '10ch'], ['ADDRESS', '14ch'], ['AADHAAR', '8ch']].map(([k, w]) => (
+              {[['FULL_NAME', '10ch'], ['ADDRESS', '14ch'], ['UPI', '8ch']].map(([k, w]) => (
                 <li key={k} className="an-brutal-b" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
                   <span className="an-dim">-&gt; {k}</span>
                   <RedactionBar w={w} />

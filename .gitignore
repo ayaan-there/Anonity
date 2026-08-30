@@ -86,11 +86,12 @@ public/zkir/
 # Vercel CLI
 .vercel/
 
-# Environment overrides (keep .env.preprod tracked for public config)
+# Environment overrides
+.env.preprod
 .env.preprod.local
 .env.*.local
 
-# AI context files (never tracked)
+# Local context files (never tracked)
 AGENTS.md
 PRD.md
 
@@ -100,8 +101,7 @@ PRD.md
 # Local Stitch design reference files
 design-reference/
 
-# Local AI skill tooling (npx skills add)
+# Local tooling
 .skills/
 .agents/
-.claude/
 skills-lock.json

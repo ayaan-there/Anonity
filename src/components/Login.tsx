@@ -1,7 +1,7 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
 import { navigate } from '../router';
-import { authReady, signInWithEmail, signUpWithEmail } from '../lib/supabase';
+import { authReady, saveProfileWalletAddress, signInWithEmail, signUpWithEmail } from '../lib/supabase';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; role: 'hunter' | 'org' };
 
@@ -9,6 +9,7 @@ const Login: React.FC<Props> = ({ midnight, role }) => {
   const [mode, setMode] = React.useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [walletAddress, setWalletAddress] = React.useState('');
   const [pending, setPending] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const isOrg = role === 'org';
@@ -39,7 +40,10 @@ const Login: React.FC<Props> = ({ midnight, role }) => {
 
     try {
       if (mode === 'signup') {
-        const { session: s } = await signUpWithEmail(email, password, role);
+        const { session: s } = await signUpWithEmail(email, password, role, walletAddress);
+        if (role === 'hunter' && walletAddress.trim() && s?.user) {
+          await saveProfileWalletAddress(walletAddress);
+        }
         if (s?.user) {
           routeAfterAuth(role);
         } else {
@@ -107,6 +111,13 @@ const Login: React.FC<Props> = ({ midnight, role }) => {
               autoComplete="email"
             />
           </div>
+          {mode === 'signup' && !isOrg && (
+            <div>
+              <label className="an-label an-secondary-text an-field-label" htmlFor="wallet-address">PAYOUT WALLET ADDRESS <span className="an-dim">(OPTIONAL)</span></label>
+              <input id="wallet-address" className="an-input" placeholder="Your Preprod NIGHT address" value={walletAddress} onChange={(e) => setWalletAddress(e.target.value)} autoComplete="off" />
+              <p className="an-label an-dim" style={{ marginTop: 6 }}>Used only to receive valid-report payouts. You can add it later.</p>
+            </div>
+          )}
           <div>
             <label className="an-label an-secondary-text an-field-label" htmlFor="pass">PASSWORD</label>
             <input

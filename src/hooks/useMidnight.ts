@@ -7,7 +7,7 @@ import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-conf
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import type { ProofProvider, UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import { toHex, fromHex } from '@midnight-ntwrk/midnight-js-utils';
-import { Binding, CostModel, Proof, SignatureEnabled, Transaction, type FinalizedTransaction, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
+import { Binding, CostModel, Proof, SignatureEnabled, Transaction, unshieldedToken, type FinalizedTransaction, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { InitialAPI, ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
 import semver from 'semver';
 import { firstValueFrom, interval, map, filter, take, timeout, concatMap, catchError, throwError } from 'rxjs';
@@ -80,7 +80,7 @@ const deepestErrorMessage = (e: unknown): string => {
   return last || (typeof e === 'string' ? e : String(e ?? 'Unexpected error'));
 };
 
-type BoardView = {
+export type BoardView = {
   bounties: BountyRow[];
   submissions: SubmissionRow[];
   stats: BoardStats;
@@ -166,6 +166,38 @@ const getBoardContractAddress = (): string | null => {
 type CompatibleWallet = { id: string; api: InitialAPI };
 
 const WALLET_PREFERENCE_ORDER: readonly string[] = ['1am'];
+const WALLET_ID_KEY = 'anonityWalletId';
+const WALLET_AUTO_CONNECT_KEY = 'anonityWalletAutoConnect';
+
+const loadWalletId = (): string | null => {
+  try {
+    return localStorage.getItem(WALLET_ID_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const shouldAutoConnect = (): boolean => {
+  try {
+    return localStorage.getItem(WALLET_AUTO_CONNECT_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const persistWalletConnection = (walletId: string | null): void => {
+  try {
+    if (walletId) localStorage.setItem(WALLET_ID_KEY, walletId);
+    localStorage.setItem(WALLET_AUTO_CONNECT_KEY, 'true');
+  } catch { /* ignore */ }
+};
+
+const clearWalletConnection = (): void => {
+  try {
+    localStorage.removeItem(WALLET_ID_KEY);
+    localStorage.removeItem(WALLET_AUTO_CONNECT_KEY);
+  } catch { /* ignore */ }
+};
 
 const getCompatibleWallets = (): CompatibleWallet[] => {
   const g = globalThis as any;
@@ -323,18 +355,19 @@ export interface UseMidnightReturn {
   boardReady: boolean;
   persona: Persona | null;
   setPersona: (p: Persona | null) => void;
-  postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
-  submitReport: (bountyId: bigint) => Promise<void>;
+  postBounty: (amount: bigint, deadline: bigint) => Promise<bigint | null>;
+  submitReport: (bountyId: bigint) => Promise<bigint | null>;
   resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
-  updateBounty: (id: bigint, amount: bigint, deadline: bigint) => Promise<void>;
-  refreshBoard: () => Promise<void>;
+  updateBounty: (id: bigint, amount: bigint, deadline: bigint) => Promise<boolean>;
+  payHacker: (recipient: string, amount: bigint) => Promise<string | null>;
+  refreshBoard: () => Promise<BoardView | null>;
 }
 
 export function useMidnight(): UseMidnightReturn {
   const [walletState, setWalletState] = useState<WalletState>('detecting');
   const [address, setAddress] = useState<string | null>(null);
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
-  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(loadWalletId);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [boardStats, setBoardStats] = useState<BoardStats | null>(null);
@@ -351,6 +384,7 @@ export function useMidnight(): UseMidnightReturn {
   const providersRef = useRef<Providers | null>(null);
   const boardContractRef = useRef<any>(null);
   const walletStateRef = useRef<WalletState>('detecting');
+  const autoConnectAttemptedRef = useRef(false);
 
   // Public demo identity secrets for the Anonity bounty board — fixed,
   // shipped in the client, so any visitor can act as both an org and a
@@ -442,6 +476,7 @@ export function useMidnight(): UseMidnightReturn {
       const addr = (unshielded as any)?.unshieldedAddress ?? '(unknown address)';
       setAddress(addr);
       setWalletState('connected');
+      persistWalletConnection(selectedWalletId);
       const providers = await initializeProviders(connected, config);
       providersRef.current = providers;
 
@@ -468,7 +503,15 @@ export function useMidnight(): UseMidnightReturn {
           setBoardStats(boardState.stats);
         }
       } catch (e: any) {
-        console.warn('Anonity contract not bound:', e?.message ?? e);
+        const message = deepestErrorMessage(e);
+        const verifierMismatch = /undefined or have mismatched verifier keys/i.test(message);
+        setError(
+          verifierMismatch
+            ? 'This contract address points to an older Anonity deployment. Redeploy the updated contract with the current managed artifacts, then set VITE_ANONITY_CONTRACT to the new address.'
+            : `Contract binding failed: ${message}`,
+        );
+        boardContractRef.current = null;
+        setBoardReady(false);
       }
     } catch (e: any) {
       const isUserRejected =
@@ -485,14 +528,22 @@ export function useMidnight(): UseMidnightReturn {
       providersRef.current = null;
       boardContractRef.current = null;
       setBoardReady(false);
+      clearWalletConnection();
     }
   }, [walletState, selectedWalletId]);
+
+  useEffect(() => {
+    if (walletState !== 'ready' || !selectedWalletId || !shouldAutoConnect() || autoConnectAttemptedRef.current) return;
+    autoConnectAttemptedRef.current = true;
+    void connect();
+  }, [connect, selectedWalletId, walletState]);
 
   const selectWallet = useCallback((id: string) => {
     setSelectedWalletId(id);
   }, []);
 
   const disconnect = useCallback(() => {
+    clearWalletConnection();
     connectedAPIRef.current = null;
     providersRef.current = null;
     boardContractRef.current = null;
@@ -516,26 +567,27 @@ export function useMidnight(): UseMidnightReturn {
     } catch { /* ignore */ }
   }, []);
 
-  const refreshBoard = useCallback(async () => {
+  const refreshBoard = useCallback(async (): Promise<BoardView | null> => {
     const boardAddress = getBoardContractAddress();
-    if (!boardAddress) return;
+    if (!boardAddress) return null;
     const boardState = await fetchBoardState(boardAddress);
     if (boardState) {
       setBounties(boardState.bounties);
       setSubmissions(boardState.submissions);
       setBoardStats(boardState.stats);
     }
+    return boardState;
   }, []);
 
   const runBoardCircuit = useCallback(
     async (
       name: 'postBounty' | 'submitReport' | 'resolveSubmission' | 'updateBounty',
       ...args: readonly unknown[]
-    ) => {
+    ): Promise<boolean> => {
       const contract = boardContractRef.current;
       if (!contract) {
         setError('Anonity contract not loaded. Connect wallet first.');
-        return;
+        return false;
       }
       setLoading(true);
       setError(null);
@@ -549,11 +601,13 @@ export function useMidnight(): UseMidnightReturn {
         setLastTxId(txId ?? null);
         setLastBlock(block != null ? String(block) : null);
         await refreshBoard();
+        return true;
       } catch (e: any) {
         const msg = deepestErrorMessage(e);
         setError(`Circuit "${name}" failed: ${msg}`);
         setLastTxId(null);
         setLastBlock(null);
+        return false;
       } finally {
         setLoading(false);
       }
@@ -562,16 +616,28 @@ export function useMidnight(): UseMidnightReturn {
   );
 
   const postBounty = useCallback(
-    (amount: bigint, deadline: bigint) => runBoardCircuit('postBounty', amount, deadline),
-    [runBoardCircuit],
+    async (amount: bigint, deadline: bigint): Promise<bigint | null> => {
+      const ok = await runBoardCircuit('postBounty', amount, deadline);
+      if (!ok) return null;
+      const board = await refreshBoard();
+      if (!board || board.bounties.length === 0) return null;
+      return board.bounties.reduce((max, b) => (b.id > max ? b.id : max), 0n);
+    },
+    [runBoardCircuit, refreshBoard],
   );
   const submitReport = useCallback(
-    (bountyId: bigint) => runBoardCircuit('submitReport', bountyId),
-    [runBoardCircuit],
+    async (bountyId: bigint): Promise<bigint | null> => {
+      const ok = await runBoardCircuit('submitReport', bountyId);
+      if (!ok) return null;
+      const board = await refreshBoard();
+      if (!board || board.submissions.length === 0) return null;
+      return board.submissions.reduce((max, s) => (s.id > max ? s.id : max), 0n);
+    },
+    [runBoardCircuit, refreshBoard],
   );
   const resolveSubmission = useCallback(
     (submissionId: bigint, outcome: number) =>
-      runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome)),
+      runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome)).then(() => undefined),
     [runBoardCircuit],
   );
   const updateBounty = useCallback(
@@ -579,6 +645,35 @@ export function useMidnight(): UseMidnightReturn {
       runBoardCircuit('updateBounty', id, amount, deadline),
     [runBoardCircuit],
   );
+  const payHacker = useCallback(async (recipient: string, amount: bigint): Promise<string | null> => {
+    const wallet = connectedAPIRef.current;
+    if (!wallet) {
+      setError('Connect the organization wallet before paying the hacker.');
+      return null;
+    }
+    if (!recipient.trim() || amount <= 0n) {
+      setError('A valid payout address and positive NIGHT amount are required.');
+      return null;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await wallet.hintUsage(['makeTransfer', 'submitTransaction']);
+      const transfer = await wallet.makeTransfer([{
+        kind: 'unshielded',
+        type: unshieldedToken().raw,
+        value: amount,
+        recipient: recipient.trim(),
+      }]);
+      await wallet.submitTransaction(transfer.tx);
+      return `wallet-transfer-${Date.now()}`;
+    } catch (e: any) {
+      setError(`NIGHT payment failed: ${deepestErrorMessage(e)}`);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
     walletState,
@@ -605,6 +700,7 @@ export function useMidnight(): UseMidnightReturn {
     submitReport,
     resolveSubmission,
     updateBounty,
+    payHacker,
     refreshBoard,
   };
 }

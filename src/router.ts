@@ -2,9 +2,10 @@ export type Route =
   | { page: 'landing' }
   | { page: 'programs' }
   | { page: 'program'; id: bigint }
+  | { page: 'submission'; id: bigint }
   | { page: 'create' }
   | { page: 'submit'; bountyId: bigint | null }
-  | { page: 'inbox' }
+  | { page: 'inbox'; id?: bigint }
   | { page: 'profile' }
   | { page: 'login' }
   | { page: 'login-org' }
@@ -24,12 +25,14 @@ export const parseHash = (): Route => {
       return { page: 'programs' };
     case 'program':
       return arg ? { page: 'program', id: BigInt(arg) } : { page: 'programs' };
+    case 'submission':
+      return arg ? { page: 'submission', id: BigInt(arg) } : { page: 'dashboard' };
     case 'create':
       return { page: 'create' };
     case 'submit':
       return { page: 'submit', bountyId: arg ? BigInt(arg) : null };
     case 'inbox':
-      return { page: 'inbox' };
+      return { page: 'inbox', ...(arg ? { id: BigInt(arg) } : {}) };
     case 'profile':
       return { page: 'profile' };
     case 'login':

@@ -173,14 +173,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('orgKey',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 77 char 1',
+                                     'anonity.compact line 79 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {
           __compactRuntime.typeError('orgKey',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 77 char 1',
+                                     'anonity.compact line 79 char 1',
                                      'Bytes<32>',
                                      sk_0)
         }
@@ -207,14 +207,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('hunterKey',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 82 char 1',
+                                     'anonity.compact line 84 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {
           __compactRuntime.typeError('hunterKey',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 82 char 1',
+                                     'anonity.compact line 84 char 1',
                                      'Bytes<32>',
                                      sk_0)
         }
@@ -242,21 +242,21 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('postBounty',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 91 char 1',
+                                     'anonity.compact line 93 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(amount_0) === 'bigint' && amount_0 >= 0n && amount_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('postBounty',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 91 char 1',
+                                     'anonity.compact line 93 char 1',
                                      'Uint<0..18446744073709551616>',
                                      amount_0)
         }
         if (!(typeof(deadline_0) === 'bigint' && deadline_0 >= 0n && deadline_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('postBounty',
                                      'argument 2 (argument 3 as invoked from Typescript)',
-                                     'anonity.compact line 91 char 1',
+                                     'anonity.compact line 93 char 1',
                                      'Uint<0..18446744073709551616>',
                                      deadline_0)
         }
@@ -288,28 +288,28 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('updateBounty',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 110 char 1',
+                                     'anonity.compact line 112 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawId_0) === 'bigint' && rawId_0 >= 0n && rawId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('updateBounty',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 110 char 1',
+                                     'anonity.compact line 112 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawId_0)
         }
         if (!(typeof(rawAmount_0) === 'bigint' && rawAmount_0 >= 0n && rawAmount_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('updateBounty',
                                      'argument 2 (argument 3 as invoked from Typescript)',
-                                     'anonity.compact line 110 char 1',
+                                     'anonity.compact line 112 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawAmount_0)
         }
         if (!(typeof(rawDeadline_0) === 'bigint' && rawDeadline_0 >= 0n && rawDeadline_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('updateBounty',
                                      'argument 3 (argument 4 as invoked from Typescript)',
-                                     'anonity.compact line 110 char 1',
+                                     'anonity.compact line 112 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawDeadline_0)
         }
@@ -340,14 +340,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('submitReport',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 137 char 1',
+                                     'anonity.compact line 139 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawBountyId_0) === 'bigint' && rawBountyId_0 >= 0n && rawBountyId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('submitReport',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 137 char 1',
+                                     'anonity.compact line 139 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawBountyId_0)
         }
@@ -377,21 +377,21 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('resolveSubmission',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 164 char 1',
+                                     'anonity.compact line 168 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawSubmissionId_0) === 'bigint' && rawSubmissionId_0 >= 0n && rawSubmissionId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('resolveSubmission',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 164 char 1',
+                                     'anonity.compact line 168 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawSubmissionId_0)
         }
         if (!(typeof(rawOutcome_0) === 'bigint' && rawOutcome_0 >= 0n && rawOutcome_0 <= 255n)) {
           __compactRuntime.typeError('resolveSubmission',
                                      'argument 2 (argument 3 as invoked from Typescript)',
-                                     'anonity.compact line 164 char 1',
+                                     'anonity.compact line 168 char 1',
                                      'Uint<0..256>',
                                      rawOutcome_0)
         }
@@ -421,14 +421,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('getBounty',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 219 char 1',
+                                     'anonity.compact line 223 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawId_0) === 'bigint' && rawId_0 >= 0n && rawId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('getBounty',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 219 char 1',
+                                     'anonity.compact line 223 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawId_0)
         }
@@ -455,14 +455,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('getSubmission',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 226 char 1',
+                                     'anonity.compact line 230 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(rawId_0) === 'bigint' && rawId_0 >= 0n && rawId_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('getSubmission',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'anonity.compact line 226 char 1',
+                                     'anonity.compact line 230 char 1',
                                      'Uint<0..18446744073709551616>',
                                      rawId_0)
         }
@@ -490,7 +490,7 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('getStats',
                                      'argument 1 (as invoked from Typescript)',
-                                     'anonity.compact line 237 char 1',
+                                     'anonity.compact line 241 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
@@ -721,6 +721,43 @@ export class Contract {
       currentZswapLocalState: context.currentZswapLocalState
     }
   }
+  _left_0(value_0) {
+    return { is_left: true, left: value_0, right: new Uint8Array(32) };
+  }
+  _receiveUnshielded_0(context, partialProofData, color_0, amount_0) {
+    const tmp_0 = this._left_0(color_0);
+    __compactRuntime.queryLedgerState(context,
+                                      partialProofData,
+                                      [
+                                       { swap: { n: 0 } },
+                                       { idx: { cached: true,
+                                                pushPath: true,
+                                                path: [
+                                                       { tag: 'value',
+                                                         value: { value: _descriptor_4.toValue(6n),
+                                                                  alignment: _descriptor_4.alignment() } }] } },
+                                       { push: { storage: false,
+                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(tmp_0),
+                                                                                              alignment: _descriptor_13.alignment() }).encode() } },
+                                       { dup: { n: 1 } },
+                                       { dup: { n: 1 } },
+                                       'member',
+                                       { push: { storage: false,
+                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(amount_0),
+                                                                                              alignment: _descriptor_14.alignment() }).encode() } },
+                                       { swap: { n: 0 } },
+                                       'neg',
+                                       { branch: { skip: 4 } },
+                                       { dup: { n: 2 } },
+                                       { dup: { n: 2 } },
+                                       { idx: { cached: true,
+                                                pushPath: false,
+                                                path: [ { tag: 'stack' }] } },
+                                       'add',
+                                       { ins: { cached: true, n: 2 } },
+                                       { swap: { n: 0 } }]);
+    return [];
+  }
   _persistentHash_0(value_0) {
     const result_0 = __compactRuntime.persistentHash(_descriptor_12, value_0);
     return result_0;
@@ -732,7 +769,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('orgSecretKey',
                                  'return value',
-                                 'anonity.compact line 72 char 1',
+                                 'anonity.compact line 74 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -749,7 +786,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('hunterSecretKey',
                                  'return value',
-                                 'anonity.compact line 73 char 1',
+                                 'anonity.compact line 75 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -774,7 +811,7 @@ export class Contract {
                                                                                                                                                               alignment: _descriptor_4.alignment() } }] } },
                                                                                                                                    { popeq: { cached: true,
                                                                                                                                               result: undefined } }]).value),
-                                                                        'anonity.compact line 79 char 36'),
+                                                                        'anonity.compact line 81 char 36'),
                                    sk_0]);
   }
   _hunterKey_0(context, partialProofData, sk_0) {
@@ -792,7 +829,7 @@ export class Contract {
                                                                                                                                                               alignment: _descriptor_4.alignment() } }] } },
                                                                                                                                    { popeq: { cached: true,
                                                                                                                                               result: undefined } }]).value),
-                                                                        'anonity.compact line 84 char 39'),
+                                                                        'anonity.compact line 86 char 39'),
                                    sk_0]);
   }
   _postBounty_0(context, partialProofData, amount_0, deadline_0) {
@@ -974,6 +1011,10 @@ export class Contract {
                                                                            { popeq: { cached: false,
                                                                                       result: undefined } }]).value);
     __compactRuntime.assert(b_0.status === 0, 'submitReport: bounty is not open');
+    this._receiveUnshielded_0(context,
+                              partialProofData,
+                              new Uint8Array(32),
+                              5000000n);
     const sk_0 = this._hunterSecretKey_0(context, partialProofData);
     const hunter_0 = this._hunterKey_0(context, partialProofData, sk_0);
     const sid_0 = _descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1008,7 +1049,7 @@ export class Contract {
                                        { ins: { cached: true, n: 1 } }]);
     const tmp_1 = ((t1) => {
                     if (t1 > 18446744073709551615n) {
-                      throw new __compactRuntime.CompactError('anonity.compact line 153 char 28: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                      throw new __compactRuntime.CompactError('anonity.compact line 157 char 28: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                     }
                     return t1;
                   })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1142,7 +1183,7 @@ export class Contract {
     if (this._equal_2(outcome_0, 2n)) {
       const tmp_0 = ((t1) => {
                       if (t1 > 18446744073709551615n) {
-                        throw new __compactRuntime.CompactError('anonity.compact line 178 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                        throw new __compactRuntime.CompactError('anonity.compact line 183 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                       }
                       return t1;
                     })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1169,37 +1210,11 @@ export class Contract {
                                                    value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_0),
                                                                                                 alignment: _descriptor_0.alignment() }).encode() } },
                                          { ins: { cached: false, n: 1 } }]);
-      let t_0;
-      const tmp_1 = (t_0 = _descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
-                                                                                     partialProofData,
-                                                                                     [
-                                                                                      { dup: { n: 0 } },
-                                                                                      { idx: { cached: false,
-                                                                                               pushPath: false,
-                                                                                               path: [
-                                                                                                      { tag: 'value',
-                                                                                                        value: { value: _descriptor_4.toValue(5n),
-                                                                                                                 alignment: _descriptor_4.alignment() } }] } },
-                                                                                      { popeq: { cached: false,
-                                                                                                 result: undefined } }]).value),
-                     (__compactRuntime.assert(t_0 >= 5n,
-                                              'result of subtraction would be negative'),
-                      t_0 - 5n));
-      __compactRuntime.queryLedgerState(context,
-                                        partialProofData,
-                                        [
-                                         { push: { storage: false,
-                                                   value: __compactRuntime.StateValue.newCell({ value: _descriptor_4.toValue(5n),
-                                                                                                alignment: _descriptor_4.alignment() }).encode() } },
-                                         { push: { storage: true,
-                                                   value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_1),
-                                                                                                alignment: _descriptor_0.alignment() }).encode() } },
-                                         { ins: { cached: false, n: 1 } }]);
     } else {
       if (this._equal_3(outcome_0, 3n)) {
-        const tmp_2 = ((t1) => {
+        const tmp_1 = ((t1) => {
                         if (t1 > 18446744073709551615n) {
-                          throw new __compactRuntime.CompactError('anonity.compact line 182 char 31: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                          throw new __compactRuntime.CompactError('anonity.compact line 187 char 31: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                         }
                         return t1;
                       })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1223,39 +1238,13 @@ export class Contract {
                                                      value: __compactRuntime.StateValue.newCell({ value: _descriptor_4.toValue(6n),
                                                                                                   alignment: _descriptor_4.alignment() }).encode() } },
                                            { push: { storage: true,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_2),
-                                                                                                  alignment: _descriptor_0.alignment() }).encode() } },
-                                           { ins: { cached: false, n: 1 } }]);
-        let t_1;
-        const tmp_3 = (t_1 = _descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
-                                                                                       partialProofData,
-                                                                                       [
-                                                                                        { dup: { n: 0 } },
-                                                                                        { idx: { cached: false,
-                                                                                                 pushPath: false,
-                                                                                                 path: [
-                                                                                                        { tag: 'value',
-                                                                                                          value: { value: _descriptor_4.toValue(5n),
-                                                                                                                   alignment: _descriptor_4.alignment() } }] } },
-                                                                                        { popeq: { cached: false,
-                                                                                                   result: undefined } }]).value),
-                       (__compactRuntime.assert(t_1 >= 5n,
-                                                'result of subtraction would be negative'),
-                        t_1 - 5n));
-        __compactRuntime.queryLedgerState(context,
-                                          partialProofData,
-                                          [
-                                           { push: { storage: false,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_4.toValue(5n),
-                                                                                                  alignment: _descriptor_4.alignment() }).encode() } },
-                                           { push: { storage: true,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_3),
+                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_1),
                                                                                                   alignment: _descriptor_0.alignment() }).encode() } },
                                            { ins: { cached: false, n: 1 } }]);
       } else {
-        const tmp_4 = ((t1) => {
+        const tmp_2 = ((t1) => {
                         if (t1 > 18446744073709551615n) {
-                          throw new __compactRuntime.CompactError('anonity.compact line 186 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                          throw new __compactRuntime.CompactError('anonity.compact line 191 char 33: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                         }
                         return t1;
                       })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1279,33 +1268,7 @@ export class Contract {
                                                      value: __compactRuntime.StateValue.newCell({ value: _descriptor_4.toValue(7n),
                                                                                                   alignment: _descriptor_4.alignment() }).encode() } },
                                            { push: { storage: true,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_4),
-                                                                                                  alignment: _descriptor_0.alignment() }).encode() } },
-                                           { ins: { cached: false, n: 1 } }]);
-        let t_2;
-        const tmp_5 = (t_2 = _descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
-                                                                                       partialProofData,
-                                                                                       [
-                                                                                        { dup: { n: 0 } },
-                                                                                        { idx: { cached: false,
-                                                                                                 pushPath: false,
-                                                                                                 path: [
-                                                                                                        { tag: 'value',
-                                                                                                          value: { value: _descriptor_4.toValue(5n),
-                                                                                                                   alignment: _descriptor_4.alignment() } }] } },
-                                                                                        { popeq: { cached: false,
-                                                                                                   result: undefined } }]).value),
-                       (__compactRuntime.assert(t_2 >= 5n,
-                                                'result of subtraction would be negative'),
-                        t_2 - 5n));
-        __compactRuntime.queryLedgerState(context,
-                                          partialProofData,
-                                          [
-                                           { push: { storage: false,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_4.toValue(5n),
-                                                                                                  alignment: _descriptor_4.alignment() }).encode() } },
-                                           { push: { storage: true,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_5),
+                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_2),
                                                                                                   alignment: _descriptor_0.alignment() }).encode() } },
                                            { ins: { cached: false, n: 1 } }]);
         const b_0 = _descriptor_9.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1326,9 +1289,9 @@ export class Contract {
                                                                                                           alignment: _descriptor_0.alignment() } }] } },
                                                                                { popeq: { cached: false,
                                                                                           result: undefined } }]).value);
-        const tmp_6 = ((t1) => {
+        const tmp_3 = ((t1) => {
                         if (t1 > 18446744073709551615n) {
-                          throw new __compactRuntime.CompactError('anonity.compact line 189 char 30: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
+                          throw new __compactRuntime.CompactError('anonity.compact line 193 char 30: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 18446744073709551615');
                         }
                         return t1;
                       })(_descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
@@ -1352,7 +1315,7 @@ export class Contract {
                                                      value: __compactRuntime.StateValue.newCell({ value: _descriptor_4.toValue(8n),
                                                                                                   alignment: _descriptor_4.alignment() }).encode() } },
                                            { push: { storage: true,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_6),
+                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(tmp_3),
                                                                                                   alignment: _descriptor_0.alignment() }).encode() } },
                                            { ins: { cached: false, n: 1 } }]);
         __compactRuntime.queryLedgerState(context,
@@ -1369,7 +1332,7 @@ export class Contract {
                                                                                                   alignment: _descriptor_0.alignment() }).encode() } },
                                            { rem: { cached: false } },
                                            { ins: { cached: true, n: 1 } }]);
-        const tmp_7 = { amount: b_0.amount,
+        const tmp_4 = { amount: b_0.amount,
                         deadline: b_0.deadline,
                         org: b_0.org,
                         status: 1 };
@@ -1386,7 +1349,7 @@ export class Contract {
                                                      value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(bid_0),
                                                                                                   alignment: _descriptor_0.alignment() }).encode() } },
                                            { push: { storage: true,
-                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(tmp_7),
+                                                     value: __compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(tmp_4),
                                                                                                   alignment: _descriptor_9.alignment() }).encode() } },
                                            { ins: { cached: false, n: 1 } },
                                            { ins: { cached: true, n: 1 } }]);
@@ -1409,7 +1372,7 @@ export class Contract {
     const resolved_0 = this._equal_4(outcome_0, 1n) ?
                        1 :
                        this._equal_5(outcome_0, 2n) ? 2 : 3;
-    const tmp_8 = { bountyId: bid_0, hunter: sub_0.hunter, outcome: resolved_0 };
+    const tmp_5 = { bountyId: bid_0, hunter: sub_0.hunter, outcome: resolved_0 };
     __compactRuntime.queryLedgerState(context,
                                       partialProofData,
                                       [
@@ -1423,7 +1386,7 @@ export class Contract {
                                                  value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(submissionId_0),
                                                                                               alignment: _descriptor_0.alignment() }).encode() } },
                                        { push: { storage: true,
-                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_3.toValue(tmp_8),
+                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_3.toValue(tmp_5),
                                                                                               alignment: _descriptor_3.alignment() }).encode() } },
                                        { ins: { cached: false, n: 1 } },
                                        { ins: { cached: true, n: 1 } }]);
@@ -1614,7 +1577,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('member',
                                      'argument 1',
-                                     'anonity.compact line 48 char 1',
+                                     'anonity.compact line 49 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }
@@ -1643,7 +1606,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('lookup',
                                      'argument 1',
-                                     'anonity.compact line 48 char 1',
+                                     'anonity.compact line 49 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }
@@ -1723,7 +1686,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('member',
                                      'argument 1',
-                                     'anonity.compact line 49 char 1',
+                                     'anonity.compact line 50 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }
@@ -1752,7 +1715,7 @@ export function ledger(stateOrChargedState) {
         if (!(typeof(key_0) === 'bigint' && key_0 >= 0n && key_0 <= 18446744073709551615n)) {
           __compactRuntime.typeError('lookup',
                                      'argument 1',
-                                     'anonity.compact line 49 char 1',
+                                     'anonity.compact line 50 char 1',
                                      'Uint<0..18446744073709551616>',
                                      key_0)
         }

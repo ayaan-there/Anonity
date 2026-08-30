@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { useMidnight, BountyRow } from '../hooks/useMidnight';
 import { navigate } from '../router';
+import { listProgramMeta, type ProgramMeta, type PrizeRanges } from '../lib/programMeta';
 
 type Props = { midnight: ReturnType<typeof useMidnight> };
 
@@ -9,7 +10,14 @@ const shortHex = (bytes: Uint8Array): string =>
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-const BountyCard: React.FC<{ b: BountyRow; submissions: number }> = ({ b, submissions }) => (
+const SEVERITIES: Array<[keyof PrizeRanges, string]> = [
+  ['low', 'LOW'],
+  ['medium', 'MED'],
+  ['high', 'HIGH'],
+  ['critical', 'CRIT'],
+];
+
+const BountyCard: React.FC<{ b: BountyRow; meta?: ProgramMeta }> = ({ b, meta }) => (
   <div
     className="an-brutal"
     style={{
@@ -25,29 +33,43 @@ const BountyCard: React.FC<{ b: BountyRow; submissions: number }> = ({ b, submis
   >
     <div className="an-brutal-b" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 'var(--an-unit)' }}>
       <span className="an-dense" style={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        PROGRAM #{b.id.toString()}
+        {meta?.entityName ? meta.entityName.toUpperCase() : `PROGRAM #${b.id.toString()}`}
       </span>
       <span className="msx an-dim">{b.status === 0 ? 'lock_open' : 'lock'}</span>
     </div>
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)', flexGrow: 1 }}>
+      {meta?.shortDescription && (
+        <p className="an-dense an-secondary-text" style={{ margin: 0 }}>{meta.shortDescription}</p>
+      )}
       <div>
         <span className="an-label an-secondary-text">ORG COMMITMENT</span>
         <div className="an-dense">0x{shortHex(b.org)}…</div>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--an-unit)', marginTop: 'var(--an-unit)' }}>
-        <span className="an-chip">
-          <span className="an-label an-chip__key an-secondary-text">AMOUNT</span>
-          <span className="an-dense an-chip__val an-accent-text" style={{ fontWeight: 600 }}>{b.amount.toString()} CR</span>
-        </span>
-        <span className="an-chip">
-          <span className="an-label an-chip__key an-secondary-text">DEADLINE</span>
-          <span className="an-dense an-chip__val">{b.deadline.toString()}</span>
-        </span>
-        <span className="an-chip">
-          <span className="an-label an-chip__key an-secondary-text">REPORTS</span>
-          <span className="an-dense an-chip__val">{submissions}</span>
-        </span>
+        {meta?.scope && meta.scope.length > 0 && (
+          <span className="an-chip" style={{ flexBasis: '100%' }}>
+            <span className="an-label an-chip__key an-secondary-text">ASSETS IN SCOPE</span>
+            <span className="an-dense an-chip__val" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+              {meta.scope.slice(0, 3).map((scope, index) => (
+                <span key={`${scope.assetType}-${scope.target}-${index}`}>{scope.target || scope.assetType}</span>
+              ))}
+              {meta.scope.length > 3 && <span>+{meta.scope.length - 3} MORE…</span>}
+            </span>
+          </span>
+        )}
+        {meta?.prizeRanges && (
+          <span className="an-chip" style={{ flexBasis: '100%' }}>
+            <span className="an-label an-chip__key an-secondary-text">PRIZES BY SEVERITY</span>
+            <span className="an-dense an-chip__val" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+              {SEVERITIES.map(([key, label]) => {
+                const range = meta.prizeRanges[key];
+                const value = range.min || range.max ? `${range.min || '—'}–${range.max || '—'} NIGHT` : '—';
+                return <span key={key}>{label} {value}</span>;
+              })}
+            </span>
+          </span>
+        )}
       </div>
     </div>
 
@@ -75,33 +97,46 @@ const BountyCard: React.FC<{ b: BountyRow; submissions: number }> = ({ b, submis
 );
 
 const DiscoverPrograms: React.FC<Props> = ({ midnight }) => {
-  const { bounties, submissions, boardStats } = midnight;
+  const { bounties, boardStats, persona } = midnight;
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+  const [assetFilter, setAssetFilter] = useState('ANY');
+  const [meta, setMeta] = useState<Map<bigint, ProgramMeta>>(new Map());
 
-  const subCount = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const s of submissions) {
-      const k = s.bountyId.toString();
-      m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return m;
-  }, [submissions]);
+  const assetTypes = useMemo(() => {
+    const types = new Set<string>();
+    meta.forEach((program) => program.scope.forEach((scope) => types.add(scope.assetType)));
+    return ['ANY', ...Array.from(types).sort()];
+  }, [meta]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listProgramMeta().then((rows) => {
+      if (!cancelled) setMeta(new Map(rows.map((r) => [BigInt(r.bountyId), r])));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bounties.length]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return bounties.filter((b) => {
+    const visibleBounties = persona === 'org' ? bounties : bounties.filter((b) => b.status === 0);
+    return visibleBounties.filter((b) => {
       if (statusFilter === 'OPEN' && b.status !== 0) return false;
       if (statusFilter === 'CLOSED' && b.status !== 1) return false;
+      if (assetFilter !== 'ANY' && !(meta.get(b.id)?.scope.some((scope) => scope.assetType === assetFilter))) return false;
       if (!q) return true;
+      const m = meta.get(b.id);
       return (
         b.id.toString().includes(q) ||
         `program ${b.id}`.includes(q) ||
-        Array.from(b.org.slice(0, 6)).some(() => false) ||
-        `0x${shortHex(b.org)}`.includes(q)
+        `0x${shortHex(b.org)}`.includes(q) ||
+        (m?.entityName.toLowerCase().includes(q) ?? false) ||
+        (m?.shortDescription.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [bounties, query, statusFilter]);
+  }, [bounties, persona, query, statusFilter, assetFilter, meta]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-md)' }}>
@@ -110,19 +145,19 @@ const DiscoverPrograms: React.FC<Props> = ({ midnight }) => {
         <p className="an-dense an-secondary-text" style={{ maxWidth: 640, marginTop: 'var(--an-stack-sm)' }}>
           WE HAVE {filtered.length} PROGRAM{filtered.length === 1 ? '' : 'S'} FOR YOU.
           {boardStats
-            ? ` ${boardStats.totalPaid.toString()} CREDITS PAID OUT · ${boardStats.feesBurned.toString()} SLOP FEES BURNED.`
+            ? ` ${boardStats.totalPaid.toString()} NIGHT PAYOUTS RECORDED · ${boardStats.feesBurned.toString()} NIGHT SLOP FEES FORFEITED.`
             : ''}
         </p>
       </header>
 
       <div className="an-brutal" style={{ padding: 1, background: 'var(--an-outline-variant)' }}>
-        <div style={{ background: 'var(--an-bg)', padding: 'var(--an-gutter)', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 1 }}>
+        <div className="discover-filters">
           <div>
             <label className="an-label an-secondary-text" htmlFor="q">&gt;_ QUERY</label>
             <input
               id="q"
               className="an-input"
-              style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--an-outline-variant)' }}
+              style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--an-outline-variant)', minHeight: 42 }}
               placeholder="Search program ids or commitments…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -130,10 +165,16 @@ const DiscoverPrograms: React.FC<Props> = ({ midnight }) => {
           </div>
           <div>
             <label className="an-label an-secondary-text" htmlFor="st">STATUS</label>
-            <select id="st" className="an-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
+            <select id="st" className="an-input discover-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
               <option value="ALL">ANY</option>
               <option value="OPEN">OPEN</option>
-              <option value="CLOSED">CLOSED</option>
+              {persona === 'org' && <option value="CLOSED">CLOSED</option>}
+            </select>
+          </div>
+          <div>
+            <label className="an-label an-secondary-text" htmlFor="asset-filter">ASSET TYPE</label>
+            <select id="asset-filter" className="an-input discover-select" value={assetFilter} onChange={(e) => setAssetFilter(e.target.value)}>
+              {assetTypes.map((type) => <option key={type} value={type}>{type}</option>)}
             </select>
           </div>
         </div>
@@ -155,7 +196,7 @@ const DiscoverPrograms: React.FC<Props> = ({ midnight }) => {
       ) : (
         <div className="an-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 'var(--an-gutter)', marginTop: 'var(--an-stack-md)' }}>
           {filtered.map((b) => (
-            <BountyCard key={b.id.toString()} b={b} submissions={subCount.get(b.id.toString()) ?? 0} />
+            <BountyCard key={b.id.toString()} b={b} meta={meta.get(b.id)} />
           ))}
         </div>
       )}

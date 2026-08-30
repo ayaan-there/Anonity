@@ -152,7 +152,7 @@ const sk = (b: number): Uint8Array => {
     return out;
 };
 
-/** Standard fixture: org posts a 100-credit bounty, hunter submits once. */
+/** Standard fixture: org posts a 100-point bounty, hunter submits once. */
 const withOpenSubmission = () => {
     const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
     sim.postBounty(100n, 9999n);   // bounty #1
@@ -224,7 +224,7 @@ describe('Anonity bounty core — circuit logic', () => {
         assert.equal(paid, 100n, 'bounty amount must be marked paid');
         assert.equal(refunded, FEE, 'fee must be refunded');
         assert.equal(burned, 0n, 'no fee may burn on valid');
-        assert.equal(escrow, 0n, 'escrow must empty out');
+        assert.equal(escrow, FEE, 'fee remains in contract escrow until a private refund path is available');
     });
 
     test('duplicate resolution refunds the fee and leaves the bounty open', () => {
@@ -234,7 +234,7 @@ describe('Anonity bounty core — circuit logic', () => {
         assert.equal(refunded, FEE);
         assert.equal(burned, 0n);
         assert.equal(paid, 0n);
-        assert.equal(escrow, 0n);
+        assert.equal(escrow, FEE, 'duplicate fee remains in contract escrow until refunded privately');
         const [, , , status] = sim.getBounty(1n);
         assert.equal(status, 0n, 'duplicate must not close the bounty');
     });
@@ -246,7 +246,7 @@ describe('Anonity bounty core — circuit logic', () => {
         assert.equal(burned, FEE, 'fee must burn on slop');
         assert.equal(refunded, 0n);
         assert.equal(paid, 0n);
-        assert.equal(escrow, 0n);
+        assert.equal(escrow, FEE, 'forfeited fee remains in contract custody');
     });
 });
 
@@ -303,7 +303,7 @@ describe('Anonity bounty core — state transitions', () => {
         sim.resolve(2n, DUPLICATE);
         sim.resolve(3n, SLOP);
         const [escrow, burned, refunded, paid] = sim.getStats();
-        assert.equal(escrow, 0n, 'all three fees must have left escrow');
+        assert.equal(escrow, 3n * FEE, 'all three fees remain in contract custody');
         assert.equal(burned, FEE);
         assert.equal(refunded, 2n * FEE);
         assert.equal(paid, 50n);

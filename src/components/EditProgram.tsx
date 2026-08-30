@@ -1,22 +1,34 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
 import { navigate } from '../router';
+import ProgramForm, { type ProgramFormValues } from './ProgramForm';
+import { emptyProgramForm, getProgramMeta, upsertProgramMeta } from '../lib/programMeta';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; id: bigint };
 
 const EditProgram: React.FC<Props> = ({ midnight, id }) => {
   const { bounties, updateBounty, boardReady, persona, error, clearError } = midnight;
   const bounty = bounties.find((b) => b.id === id);
-  const [amount, setAmount] = React.useState(bounty ? bounty.amount.toString() : '');
-  const [deadline, setDeadline] = React.useState(bounty ? bounty.deadline.toString() : '');
+  const [initial, setInitial] = React.useState<ProgramFormValues | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    if (bounty) {
-      setAmount(bounty.amount.toString());
-      setDeadline(bounty.deadline.toString());
-    }
-  }, [bounty]);
+    if (!bounty) return;
+    let cancelled = false;
+    const base: ProgramFormValues = {
+      ...emptyProgramForm,
+      amount: '1',
+      deadline: bounty.deadline.toString(),
+    };
+    void getProgramMeta(id).then((meta) => {
+      if (cancelled) return;
+      setInitial(meta ? { ...base, ...meta } : base);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, bounty?.amount.toString(), bounty?.deadline.toString()]);
 
   React.useEffect(() => {
     if (error) {
@@ -36,11 +48,12 @@ const EditProgram: React.FC<Props> = ({ midnight, id }) => {
     );
   }
 
-  const submit = async () => {
-    if (!amount || Number(amount) <= 0) return;
+  const submit = async (values: ProgramFormValues) => {
     setBusy(true);
     try {
-      await updateBounty(id, BigInt(amount), BigInt(deadline || '0'));
+      const ok = await updateBounty(id, 1n, BigInt(values.deadline || '0'));
+      if (!ok) return;
+      await upsertProgramMeta(id, values);
       navigate('/dashboard');
     } finally {
       setBusy(false);
@@ -50,45 +63,48 @@ const EditProgram: React.FC<Props> = ({ midnight, id }) => {
   const authorized = persona === 'org' && boardReady;
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', position: 'relative' }}>
+    <div style={{ position: 'relative' }}>
       <div className="an-hatch" />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <p className="an-label an-secondary-text" style={{ margin: 0 }}>PROGRAM</p>
-        <h1 className="an-hook" style={{ fontSize: 'clamp(36px, 5vw, 64px)' }}>EDIT #{id.toString()}</h1>
-        <p className="an-dense an-secondary-text" style={{ margin: 'var(--an-stack-sm) 0 var(--an-stack-lg)' }}>
-          ONLY THE POSTING ORG CAN EDIT — PROVEN IN ZK.
-        </p>
-
         {!authorized ? (
-          <div style={{ textAlign: 'center' }}>
-            <p className="an-punchline an-secondary-text">
+          <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
+            <h1 className="an-hook">EDIT<br />PROGRAM</h1>
+            <p className="an-punchline an-secondary-text" style={{ marginTop: 'var(--an-stack-md)' }}>
               {persona !== 'org' ? 'LOGIN AS AN ORGANIZATION TO EDIT.' : 'CONNECT YOUR WALLET TO EDIT.'}
             </p>
             <a href={persona !== 'org' ? '#/login-org' : '#/login'} className="an-btn" style={{ width: 'auto', marginTop: 'var(--an-gutter)' }}>
               {persona !== 'org' ? 'ORG LOGIN' : 'LOGIN & CONNECT'}
             </a>
+            {error && <p className="an-dense" style={{ color: 'var(--an-error)', marginTop: 'var(--an-gutter)' }}>{error}</p>}
+          </div>
+        ) : !initial ? (
+          <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
+            <p className="an-dense an-secondary-text">LOADING PROGRAM #{id.toString()}…</p>
           </div>
         ) : (
-          <>
-            <label className="an-label an-secondary-text an-field-label" htmlFor="amt">AMOUNT (CREDITS)</label>
-            <input id="amt" className="an-input" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))} />
-            <div style={{ height: 'var(--an-gutter)' }} />
-            <label className="an-label an-secondary-text an-field-label" htmlFor="ddl">DEADLINE (BLOCKS / EPOCH)</label>
-            <input id="ddl" className="an-input" inputMode="numeric" value={deadline} onChange={(e) => setDeadline(e.target.value.replace(/[^0-9]/g, ''))} />
-
-            {error && (
-              <p className="an-dense" style={{ color: 'var(--an-error)', marginTop: 'var(--an-gutter)' }}>{error}</p>
-            )}
-
-            <div style={{ display: 'flex', gap: 'var(--an-gutter)', marginTop: 'var(--an-stack-md)' }}>
-              <button onClick={submit} disabled={busy || !amount} className="an-btn">
-                {busy ? 'PROVING + SUBMITTING…' : 'SAVE CHANGES'}
-              </button>
-              <button onClick={() => navigate('/dashboard')} className="an-btn an-btn--ghost">
-                CANCEL
-              </button>
-            </div>
-          </>
+          <ProgramForm
+            eyebrow={
+              <>
+                <span className="an-secondary-text">SYSTEM.MUTATE</span>
+                <span className="msx" style={{ fontSize: 14 }}>arrow_forward</span>
+                <span style={{ color: '#00ccff' }}>EXISTING_ENTITY</span>
+              </>
+            }
+            title={<>EDIT<br />PROGRAM</>}
+            initial={initial}
+            submitLabel="EXECUTE SAVE_CHANGES"
+            busyLabel="PROVING + SUBMITTING…"
+            statusLine={
+              <>
+                STATUS: <span style={{ color: '#ff9900' }}>AMENDMENT_UNCOMMITTED</span>
+                <span className="an-label an-dim" style={{ marginLeft: 12 }}>PROGRAM #{id.toString()}</span>
+              </>
+            }
+            busy={busy}
+            error={error}
+            onSubmit={submit}
+            onCancel={() => navigate('/dashboard')}
+          />
         )}
       </div>
     </div>

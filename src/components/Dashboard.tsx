@@ -1,15 +1,21 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
 import { navigate } from '../router';
+import { listOwnedProgramIds } from '../lib/programMeta';
 
 type Props = { midnight: ReturnType<typeof useMidnight> };
 
 const Dashboard: React.FC<Props> = ({ midnight }) => {
   const { bounties, submissions, boardReady, persona } = midnight;
-  const pending = submissions.filter((s) => s.outcome === 0);
-  const valid = submissions.filter((s) => s.outcome === 1);
-  const dup = submissions.filter((s) => s.outcome === 2);
-  const slop = submissions.filter((s) => s.outcome === 3);
+  const [ownedProgramIds, setOwnedProgramIds] = React.useState<Set<bigint> | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void listOwnedProgramIds().then((ids) => {
+      if (!cancelled) setOwnedProgramIds(ids);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   if (persona !== 'org') {
     return (
@@ -23,13 +29,20 @@ const Dashboard: React.FC<Props> = ({ midnight }) => {
     );
   }
 
+  const ownedBounties = ownedProgramIds ? bounties.filter((b) => ownedProgramIds.has(b.id)) : [];
+  const ownedSubmissions = ownedProgramIds ? submissions.filter((s) => ownedProgramIds.has(s.bountyId)) : [];
+  const pending = ownedSubmissions.filter((s) => s.outcome === 0);
+  const valid = ownedSubmissions.filter((s) => s.outcome === 1);
+  const dup = ownedSubmissions.filter((s) => s.outcome === 2);
+  const slop = ownedSubmissions.filter((s) => s.outcome === 3);
+
   const metrics: Array<[string, string, string]> = [
-    ['PROGRAMS', bounties.length.toString(), 'var(--an-primary)'],
-    ['REPORTS RECEIVED', submissions.length.toString(), 'var(--an-primary)'],
+    ['PROGRAMS', ownedBounties.length.toString(), 'var(--an-primary)'],
+    ['REPORTS RECEIVED', ownedSubmissions.length.toString(), 'var(--an-primary)'],
     ['AWAITING REVIEW', pending.length.toString(), 'var(--an-accent)'],
     ['VALID — PAID', valid.length.toString(), 'var(--an-accent)'],
     ['DUPLICATES', dup.length.toString(), 'var(--an-secondary)'],
-    ['SLOP — BURNED', slop.length.toString(), 'var(--an-error)'],
+    ['SLOP — FORFEITED', slop.length.toString(), 'var(--an-error)'],
   ];
 
   return (
@@ -58,9 +71,11 @@ const Dashboard: React.FC<Props> = ({ midnight }) => {
 
       <section>
         <div className="an-label an-dim an-brutal-b" style={{ paddingBottom: 'var(--an-unit)', marginBottom: 'var(--an-stack-sm)' }}>
-          MY PROGRAMS ({bounties.length})
+          MY PROGRAMS ({ownedBounties.length})
         </div>
-        {bounties.length === 0 ? (
+        {ownedProgramIds === null ? (
+          <p className="an-dense an-secondary-text">LOADING YOUR PROGRAMS…</p>
+        ) : ownedBounties.length === 0 ? (
           <div className="an-brutal" style={{ padding: 'var(--an-stack-lg)', textAlign: 'center' }}>
             <p className="an-punchline an-secondary-text">NO PROGRAMS YET.</p>
             <p className="an-label an-dim" style={{ marginTop: 'var(--an-gutter)' }}>
@@ -70,9 +85,9 @@ const Dashboard: React.FC<Props> = ({ midnight }) => {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-gutter)' }}>
-            {bounties.map((b) => {
-              const reports = submissions.filter((s) => s.bountyId === b.id).length;
-              const openPending = submissions.some((s) => s.bountyId === b.id && s.outcome === 0);
+            {ownedBounties.map((b) => {
+              const reports = ownedSubmissions.filter((s) => s.bountyId === b.id).length;
+              const openPending = ownedSubmissions.some((s) => s.bountyId === b.id && s.outcome === 0);
               return (
                 <div key={b.id.toString()} className="an-brutal" style={{ padding: 'var(--an-gutter)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--an-gutter)', background: 'var(--an-surface-lowest)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -80,7 +95,7 @@ const Dashboard: React.FC<Props> = ({ midnight }) => {
                       PROGRAM #{b.id.toString()} · {b.status === 0 ? 'OPEN' : 'CLOSED'}
                     </span>
                     <span className="an-dense an-secondary-text">
-                      {b.amount.toString()} CR · DEADLINE {b.deadline.toString()} · {reports} REPORT{reports === 1 ? '' : 'S'}
+                      DEADLINE {b.deadline.toString()} · {reports} REPORT{reports === 1 ? '' : 'S'}
                     </span>
                     {openPending && <span className="an-label" style={{ color: 'var(--an-accent)' }}>▸ REPORTS AWAITING REVIEW</span>}
                   </div>
@@ -117,7 +132,7 @@ const Dashboard: React.FC<Props> = ({ midnight }) => {
                   </span>
                   <span className="an-dense an-dim">ANONYMOUS SUBMISSION · PENDING TRIAGE</span>
                 </div>
-                <button onClick={() => navigate(`/program/${s.bountyId.toString()}`)} className="an-btn" style={{ width: 'auto', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, padding: '8px 14px' }}>
+                <button onClick={() => navigate(`/inbox/${s.id.toString()}`)} className="an-btn" style={{ width: 'auto', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, padding: '8px 14px' }}>
                   {boardReady ? 'REVIEW →' : 'CONNECT WALLET TO REVIEW'}
                 </button>
               </div>

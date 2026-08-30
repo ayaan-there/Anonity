@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { BountyRow, BoardStats, SubmissionRow } from '../hooks/useMidnight';
+import { navigate } from '../router';
 
 type BountyBoardProps = {
   network: string;
@@ -12,7 +13,6 @@ type BountyBoardProps = {
   boardReady: boolean;
   postBounty: (amount: bigint, deadline: bigint) => Promise<void>;
   submitReport: (bountyId: bigint) => Promise<void>;
-  resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
   refreshBoard: () => Promise<void>;
 };
 
@@ -21,7 +21,7 @@ const shortHex = (bytes: Uint8Array): string =>
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-const OUTCOME_LABEL = ['PENDING', 'VALID — PAID', 'DUPLICATE — REFUNDED', 'SLOP — BURNED'];
+const OUTCOME_LABEL = ['PENDING', 'VALID — PAID', 'DUPLICATE — REFUNDED', 'SLOP — FORFEITED'];
 
 const BountyBoard: React.FC<BountyBoardProps> = ({
   network,
@@ -34,14 +34,11 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
   boardReady,
   postBounty,
   submitReport,
-  resolveSubmission,
   refreshBoard,
 }) => {
-  const [amount, setAmount] = useState('100');
   const [deadline, setDeadline] = useState('999999');
   const [submitBountyId, setSubmitBountyId] = useState('');
   const [resolveId, setResolveId] = useState('');
-  const [outcome, setOutcome] = useState('1');
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const openSubmissions = submissions.filter((s) => s.outcome === 0);
@@ -92,16 +89,16 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
       <p className="mono" style={{ margin: 0, fontSize: 11.5, lineHeight: 1.6, color: 'var(--color-on-surface-variant)', maxWidth: 780 }}>
         Post a bounty as an organization, report a vulnerability anonymously as a hunter, and resolve
         outcomes with ZK-proven authority. The chain sees commitments and fee accounting — never a
-        wallet-linked identity. Anti-spam fee: 5 credits per report (refunded on valid/duplicate, burned on slop).
+        wallet-linked identity. Anti-spam fee: 5 NIGHT per report enters contract escrow; resolution records a refund or forfeiture.
       </p>
 
       {stats && (
         <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', background: 'var(--color-border)', border: '1px solid var(--color-border)' }}>
           {[
             ['FEE ESCROWED', stats.feeEscrowed],
-            ['FEES BURNED', stats.feesBurned],
+            ['FEES FORFEITED', stats.feesBurned],
             ['FEES REFUNDED', stats.feesRefunded],
-            ['TOTAL PAID OUT', stats.totalPaid],
+            ['TOTAL PAYOUTS RECORDED', stats.totalPaid],
           ].map(([label, value]) => (
             <div
               key={label as string}
@@ -137,9 +134,8 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
             <fieldset disabled={loading} style={{ flex: '1 1 300px', border: '1px solid var(--color-border)', padding: 14, margin: 0 }}>
               <legend className="caps-xs" style={{ color: 'var(--color-secondary)', padding: '0 6px' }}>POST BOUNTY (ORG)</legend>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input aria-label="Amount" style={inputStyle} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Amount" />
                 <input aria-label="Deadline" style={inputStyle} value={deadline} onChange={(e) => setDeadline(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Deadline" />
-                <button className="btn-secondary" onClick={() => run(() => postBounty(BigInt(amount || '0'), BigInt(deadline || '0')), 'BOUNTY POSTED')} disabled={loading}>
+                <button className="btn-secondary" onClick={() => run(() => postBounty(1n, BigInt(deadline || '0')), 'BOUNTY POSTED')} disabled={loading}>
                   POST
                 </button>
               </div>
@@ -152,7 +148,7 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
                   <option value="">Select bounty…</option>
                   {bounties.filter((b) => b.status === 0).map((b) => (
                     <option key={b.id.toString()} value={b.id.toString()}>
-                      #{b.id.toString()} — {b.amount.toString()} cr
+                      PROGRAM #{b.id.toString()}
                     </option>
                   ))}
                 </select>
@@ -175,17 +171,12 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
                     <option key={s.id.toString()} value={s.id.toString()}>#{s.id.toString()} → bounty #{s.bountyId.toString()}</option>
                   ))}
                 </select>
-                <select aria-label="Outcome" style={{ ...inputStyle, maxWidth: 120 }} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-                  <option value="1">Valid</option>
-                  <option value="2">Duplicate</option>
-                  <option value="3">Slop</option>
-                </select>
                 <button
                   className="btn-secondary"
-                  onClick={() => run(() => resolveSubmission(BigInt(resolveId), Number(outcome)), 'RESOLVED')}
+                  onClick={() => { if (resolveId) navigate(`/inbox/${resolveId}`); }}
                   disabled={loading || !resolveId}
                 >
-                  RESOLVE
+                  OPEN INBOX TRIAGE
                 </button>
               </div>
             </fieldset>
@@ -200,7 +191,6 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-on-surface-variant)', textAlign: 'left' }}>
                   <th style={{ padding: '8px 10px' }}>#</th>
-                  <th style={{ padding: '8px 10px' }}>AMOUNT</th>
                   <th style={{ padding: '8px 10px' }}>DEADLINE</th>
                   <th style={{ padding: '8px 10px' }}>ORG COMMITMENT</th>
                   <th style={{ padding: '8px 10px' }}>STATUS</th>
@@ -208,12 +198,11 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
               </thead>
               <tbody>
                 {bounties.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: '12px 10px', color: 'var(--color-on-surface-variant)' }}>No bounties yet — post the first one.</td></tr>
+                  <tr><td colSpan={4} style={{ padding: '12px 10px', color: 'var(--color-on-surface-variant)' }}>No bounties yet — post the first one.</td></tr>
                 )}
                 {bounties.map((b) => (
                   <tr key={b.id.toString()} style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <td style={{ padding: '8px 10px', color: 'var(--color-secondary)' }}>{b.id.toString()}</td>
-                    <td style={{ padding: '8px 10px' }}>{b.amount.toString()} cr</td>
                     <td style={{ padding: '8px 10px' }}>{b.deadline.toString()}</td>
                     <td style={{ padding: '8px 10px', color: 'var(--color-on-surface-variant)' }}>{shortHex(b.org)}…</td>
                     <td style={{ padding: '8px 10px', color: b.status === 0 ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}>

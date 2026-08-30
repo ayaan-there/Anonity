@@ -93,19 +93,6 @@ const App: React.FC = () => {
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
           {session.email ? (
             <>
-              {midnight.persona && (
-                <span
-                  className="an-label"
-                  style={{
-                    background: 'var(--an-surface-low)',
-                    border: '1px solid var(--an-outline-variant)',
-                    color: 'var(--an-accent)',
-                    padding: '4px 6px',
-                  }}
-                >
-                  {midnight.persona === 'org' ? 'ORG' : 'HACKER'}
-                </span>
-              )}
               {!isConnected ? (
                 <button
                   onClick={() => (isConnecting ? undefined : midnight.connect())}
@@ -163,9 +150,10 @@ const App: React.FC = () => {
         {route.page === 'edit' && <EditProgram midnight={midnight} id={route.id} />}
         {route.page === 'programs' && <DiscoverPrograms midnight={midnight} />}
         {route.page === 'program' && <ProgramDetails midnight={midnight} id={route.id} />}
+        {route.page === 'submission' && <Inbox midnight={midnight} submissionId={route.id} />}
         {route.page === 'create' && <CreateProgram midnight={midnight} />}
         {route.page === 'submit' && <SubmitReport midnight={midnight} bountyId={route.bountyId} />}
-        {route.page === 'inbox' && <Inbox midnight={midnight} />}
+        {route.page === 'inbox' && <Inbox midnight={midnight} submissionId={route.id} />}
         {route.page === 'profile' && <ProfilePlaceholder midnight={midnight} />}
       </main>
 
@@ -194,16 +182,50 @@ const App: React.FC = () => {
   );
 };
 
-const ProfilePlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) => (
-  <div style={{ textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
-    <h1 className="an-hook">PROFILE</h1>
-    <p className="an-dense an-secondary-text" style={{ marginTop: 'var(--an-stack-md)', wordBreak: 'break-all' }}>
-      {midnight.address ?? 'NOT CONNECTED'}
-    </p>
-    <p className="an-label an-dim" style={{ marginTop: 'var(--an-gutter)' }}>
-      IDENTITY = COMMITMENT. NO NAME. NO EMAIL. NO HISTORY.
-    </p>
-  </div>
-);
+const ProfilePlaceholder: React.FC<{ midnight: ReturnType<typeof useMidnight> }> = ({ midnight }) => {
+  const address = midnight.address ?? 'NOT CONNECTED';
+  const shortAddress = address.length > 24 ? `${address.slice(0, 12)}…${address.slice(-8)}` : address;
+  return (
+    <div className="profile-shell">
+      <aside className="profile-sidebar an-brutal">
+        <button className="profile-nav profile-nav--active">PROFILE</button>
+        <button className="profile-nav">BADGES</button>
+        <button className="profile-nav">ACTIVITY</button>
+        <button className="profile-nav">CONNECT YOUR WALLET</button>
+      </aside>
+      <section className="profile-main">
+        <header className="an-brutal-b profile-identity">
+          <div className="profile-avatar">AN</div>
+          <div>
+            <p className="an-label an-secondary-text">ANONITY HUNTER</p>
+            <h1 className="an-punchline">IDENTITY REDACTED</h1>
+            <p className="an-dense an-dim" title={address}>{shortAddress}</p>
+          </div>
+          <button className="an-btn an-btn--ghost profile-edit">EDIT PROFILE</button>
+        </header>
+        <div className="profile-stat-grid">
+          {['REPORTS SUBMITTED', 'VALID REPORTS', 'NIGHT EARNED', 'REPUTATION'].map((label) => (
+            <div key={label} className="an-brutal profile-stat">
+              <strong>—</strong>
+              <span className="an-label an-secondary-text">{label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="profile-columns">
+          <section className="an-section">
+            <div className="an-section__tab">ACTIVITY</div>
+            <p className="an-dense an-dim">Your private activity will appear here after your first report.</p>
+            <a href="#/programs" className="an-btn" style={{ width: 'auto', alignSelf: 'flex-start', textDecoration: 'none' }}>DISCOVER PROGRAMS</a>
+          </section>
+          <section className="an-section">
+            <div className="an-section__tab">CREDITS</div>
+            <div className="profile-credit"><strong>0</strong><span className="an-label an-secondary-text">VALID REPORTS</span></div>
+            <div className="profile-credit"><strong>0</strong><span className="an-label an-secondary-text">NIGHT RECEIVED</span></div>
+          </section>
+        </div>
+      </section>
+    </div>
+  );
+};
 
 export default App;
