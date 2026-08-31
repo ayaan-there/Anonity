@@ -9,6 +9,7 @@ import type { ProofProvider, UnboundTransaction } from '@midnight-ntwrk/midnight
 import { toHex, fromHex } from '@midnight-ntwrk/midnight-js-utils';
 import { Binding, CostModel, Proof, SignatureEnabled, Transaction, createShieldedCoinInfo, encodeQualifiedShieldedCoinInfo, encodeShieldedCoinInfo, encodeUserAddress, nativeToken, type FinalizedTransaction, type QualifiedShieldedCoinInfo, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { InitialAPI, ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
+import { MidnightBech32m, UnshieldedAddress } from '@midnight-ntwrk/wallet-sdk/address-format';
 import semver from 'semver';
 import { firstValueFrom, interval, map, filter, take, timeout, concatMap, catchError, throwError } from 'rxjs';
 import { pipe } from 'fp-ts/function';
@@ -167,6 +168,13 @@ type Providers = {
 const getNetworkId = (): string => {
   const v = import.meta.env.VITE_NETWORK_ID as string | undefined;
   return (v && v.trim()) || 'preview';
+};
+
+// The connector exposes a display Bech32m address (mn_addr_...). Compact's
+// UserAddress argument is the underlying 32-byte hex public key instead.
+const toCompactUserAddress = (bech32Address: string): string => {
+  const parsed = MidnightBech32m.parse(bech32Address);
+  return parsed.decode(UnshieldedAddress, getNetworkId()).hexString;
 };
 
 const boardModule = isTransparentDemoMode ? AnonityDemoModule : AnonityModule;
@@ -665,7 +673,8 @@ export function useMidnight(): UseMidnightReturn {
     async (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo | string): Promise<boolean> => {
       if (isTransparentDemoMode) {
         if (typeof payoutCoin !== 'string') return false;
-        return runBoardCircuit('claimPayout', submissionId, { bytes: encodeUserAddress(payoutCoin) }).then(({ ok }) => ok);
+        const compactAddress = toCompactUserAddress(payoutCoin);
+        return runBoardCircuit('claimPayout', submissionId, { bytes: encodeUserAddress(compactAddress) }).then(({ ok }) => ok);
       }
       if (typeof payoutCoin === 'string') return false;
       return runBoardCircuit('claimPayout', submissionId, encodeQualifiedShieldedCoinInfo(payoutCoin)).then(({ ok }) => ok);
