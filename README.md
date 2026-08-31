@@ -14,6 +14,12 @@ Connect your wallet and use the Anonity bounty board live on Preprod.
 
 ---
 
+## Demo Video
+
+[Watch the Anonity demo on YouTube](https://youtu.be/ZTKdqx9d2aU)
+
+---
+
 ## Contract Address
 
 | Network  | Address                                                                 |
