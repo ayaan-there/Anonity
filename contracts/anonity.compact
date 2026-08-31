@@ -23,11 +23,8 @@ import CompactStandardLibrary;
 //     never a wallet address, and cannot link commitments across
 //     bounties or after a round rotation.
 //
-// MVP accounting model: each submission also receives exactly 5 NIGHT
-// from the caller as a native token input. The ledger counters track the
-// fee outcome for reporting; deadline is advisory metadata in v1. The
-// token remains in contract custody until an anonymous refund/forfeit
-// transfer path is added.
+// The anti-spam deposit is received as a shielded coin. The contract never
+// receives a transparent payment tied to the submitter's address.
 // ═══════════════════════════════════════════════════════════════════
 
 enum BountyStatus { Open, Closed };
@@ -44,10 +41,12 @@ struct Submission {
     bountyId: Uint<64>,
     hunter: Bytes<32>,
     outcome: Outcome,
+    payoutAmount: Uint<64>,
 }
 
 export ledger bounties: Map<Uint<64>, Bounty>;
 export ledger submissions: Map<Uint<64>, Submission>;
+export ledger claimed: Map<Uint<64>, Boolean>;
 
 // Monotonic id allocation (starts at 1)
 export ledger nextBountyId: Counter;
@@ -90,7 +89,7 @@ export circuit hunterKey(sk: Bytes<32>): Bytes<32> {
 
 // Post a bounty. Only proof of holding an org secret is required — any
 // org can participate without registering or revealing an address.
-export circuit postBounty(amount: Uint<64>, deadline: Uint<64>): [] {
+export circuit postBounty(amount: Uint<64>, deadline: Uint<64>): Uint<64> {
     assert(amount > 0, "postBounty: amount must be positive");
     const id = nextBountyId;
     const sk = orgSecretKey();
@@ -105,6 +104,7 @@ export circuit postBounty(amount: Uint<64>, deadline: Uint<64>): [] {
         }),
     );
     nextBountyId.increment(1);
+    return id;
 }
 
 // Edit an open bounty's amount/deadline. Caller proves they hold the
@@ -136,13 +136,16 @@ export circuit updateBounty(rawId: Uint<64>, rawAmount: Uint<64>, rawDeadline: U
 // Submit a report anonymously. The chain learns THAT a qualified
 // submission exists for a bounty — never WHO submitted it. A fixed
 // anti-spam fee moves into escrow; the outcome records refund or forfeit.
-export circuit submitReport(rawBountyId: Uint<64>): [] {
+export circuit submitReport(rawBountyId: Uint<64>, feeCoin: ShieldedCoinInfo): Uint<64> {
     const bountyId = disclose(rawBountyId);
     assert(bounties.member(bountyId), "submitReport: no such bounty");
     const b = bounties.lookup(bountyId);
     assert(b.status == BountyStatus.Open, "submitReport: bounty is not open");
-    // 5 NIGHT = 5,000,000 atomic units on Preprod.
-    receiveUnshielded(default<Bytes<32>>, disclose(5000000 as Uint<128>));
+    // 5 NIGHT = 5,000,000 atomic units on Preprod. The wallet must create
+    // this output for the contract in the same transaction.
+    assert(feeCoin.color == nativeToken(), "submitReport: fee must be NIGHT");
+    assert(feeCoin.value == 5000000 as Uint<128>, "submitReport: fee must be 5 NIGHT");
+    receiveShielded(disclose(feeCoin));
     const sk = hunterSecretKey();
     const hunter = hunterKey(sk);
     const sid = nextSubmissionId;
@@ -152,10 +155,12 @@ export circuit submitReport(rawBountyId: Uint<64>): [] {
             bountyId,
             hunter: disclose(hunter),
             outcome: Outcome.Pending,
+            payoutAmount: 0 as Uint<64>,
         }),
     );
     feeEscrowed = disclose((feeEscrowed + 5) as Uint<64>);
     nextSubmissionId.increment(1);
+    return sid;
 }
 
 // ─── Resolution (org-only, proven inside ZK) ────────────────────────
@@ -165,7 +170,7 @@ export circuit submitReport(rawBountyId: Uint<64>): [] {
 //   1 = Valid      → bounty marked paid, fee refund recorded
 //   2 = Duplicate  → fee refund recorded
 //   3 = Slop       → fee forfeiture recorded
-export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>): [] {
+export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>, payoutCoin: ShieldedCoinInfo): [] {
     const submissionId = disclose(rawSubmissionId);
     const outcome = disclose(rawOutcome);
     assert(submissions.member(submissionId), "resolve: no such submission");
@@ -187,10 +192,13 @@ export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>)
         feesBurned = disclose((feesBurned + 5) as Uint<64>);
     } else {
         // valid → refund and bounty payout are recorded. The payout/refund
-        // transfer must not reveal the hunter's wallet address.
+        // coin is received shielded and can only be claimed by the hunter.
+        assert(payoutCoin.color == nativeToken(), "resolve: payout must be NIGHT");
+        assert(payoutCoin.value > 0, "resolve: valid payout must be positive");
+        receiveShielded(disclose(payoutCoin));
         feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
+        totalPaid = disclose((totalPaid + (payoutCoin.value as Uint<64>)) as Uint<64>);
         const b = bounties.lookup(bid);
-        totalPaid = disclose((totalPaid + b.amount) as Uint<64>);
         bounties.remove(bid);
         bounties.insert(
             disclose(bid),
@@ -213,8 +221,30 @@ export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>)
             bountyId: bid,
             hunter: sub.hunter,
             outcome: resolved,
+            payoutAmount: outcome == 1 as Uint<8> ? payoutCoin.value as Uint<64> : 0 as Uint<64>,
         }),
     );
+}
+
+// The caller proves ownership of the hunter commitment. The recipient is
+// the caller's shielded wallet key, which may be different from the wallet
+// that funded the report fee.
+export circuit claimPayout(rawSubmissionId: Uint<64>, payoutCoin: QualifiedShieldedCoinInfo): [] {
+    const submissionId = disclose(rawSubmissionId);
+    assert(submissions.member(submissionId), "claim: no such submission");
+    const sub = submissions.lookup(submissionId);
+    assert(sub.outcome == Outcome.Valid, "claim: submission is not payable");
+    assert(!claimed.member(submissionId) || !claimed.lookup(submissionId), "claim: payout already claimed");
+    const sk = hunterSecretKey();
+    assert(sub.hunter == hunterKey(sk), "claim: caller did not submit this report");
+    assert(payoutCoin.color == nativeToken(), "claim: payout must be NIGHT");
+    assert(payoutCoin.value == sub.payoutAmount, "claim: payout coin amount mismatch");
+    sendShielded(
+        disclose(payoutCoin),
+        left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+        sub.payoutAmount,
+    );
+    claimed.insert(disclose(submissionId), disclose(true));
 }
 
 // ─── Public reads ───────────────────────────────────────────────────

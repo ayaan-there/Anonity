@@ -1,8 +1,8 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
 import { getProgramMeta } from '../lib/programMeta';
-import { getProfileWalletAddress } from '../lib/supabase';
 import { insertReport } from '../lib/reports';
+import { getOrCreateHunterSecretKey } from '../lib/hunter-identity';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; bountyId: bigint | null };
 
@@ -111,6 +111,7 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
   const [programName, setProgramName] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [done, setDone] = React.useState(false);
+  const [formError, setFormError] = React.useState<string | null>(null);
   const { submitReport, boardReady, bounties, persona, error, clearError } = midnight;
 
   React.useEffect(() => {
@@ -142,12 +143,17 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
+    setFormError(null);
     setBusy(true);
     try {
-      const submissionId = await submitReport(BigInt(selected));
-      if (submissionId === null) return;
-      const payoutAddress = await getProfileWalletAddress();
-      void insertReport(submissionId, {
+      const meta = await getProgramMeta(BigInt(selected));
+      if (!meta?.encryptionPublicKey) {
+        setFormError('THIS PROGRAM IS NOT READY TO RECEIVE ENCRYPTED REPORTS. PLEASE CONTACT THE PROGRAM OWNER.');
+        return;
+      }
+      const receipt = await submitReport(BigInt(selected));
+      if (receipt === null) return;
+      const stored = await insertReport(receipt.submissionId, receipt.txId, {
         bountyId: Number(selected),
         asset: asset.trim(),
         weakness,
@@ -156,8 +162,8 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
         cvssVector: `${cvssVersion.replace('CVSS ', 'CVSS:')}/${CVSS_METRICS[cvssVersion].map((metric) => `${metric.key}:${cvssMetrics[metric.key]}`).join('/')}`,
         description,
         impact,
-        payoutAddress: payoutAddress ?? '',
-      });
+      }, meta.encryptionPublicKey, getOrCreateHunterSecretKey());
+      if (!stored) return;
       setDone(true);
     } finally {
       setBusy(false);
@@ -218,7 +224,7 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
           <button onClick={() => midnight.connect()} className="an-btn" style={{ width: 'auto', marginTop: 'var(--an-gutter)' }}>
             CONNECT WALLET
           </button>
-          {error && <p className="an-dense" style={{ color: 'var(--an-error)', marginTop: 'var(--an-gutter)' }}>{error}</p>}
+          {(error || formError) && <p className="an-dense" style={{ color: 'var(--an-error)', marginTop: 'var(--an-gutter)' }}>{error || formError}</p>}
         </div>
       ) : openBounties.length === 0 ? (
         <p className="an-dense an-secondary-text">NO OPEN PROGRAMS RIGHT NOW. CHECK BACK SOON.</p>
@@ -349,7 +355,7 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
                 </span>
               )}
               <span className="an-label an-dim">5 NIGHT ANTI-SPAM FEE → CONTRACT ESCROW. WALLET BALANCE + DUST REQUIRED.</span>
-              {error && <span className="an-dense" style={{ color: 'var(--an-error)' }}>{error}</span>}
+              {(error || formError) && <span className="an-dense" style={{ color: 'var(--an-error)' }}>{error || formError}</span>}
             </div>
             <button type="submit" disabled={busy || !valid} className="an-btn" style={{ width: 'auto', padding: '12px 24px' }}>
               {busy ? 'PROVING + SUBMITTING…' : 'SUBMIT ANONYMOUSLY'}

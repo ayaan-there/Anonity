@@ -12,7 +12,7 @@ Anonity is anonymous bug bounties on @MidnightNtwrk:
 
 → post bounties as an org
 → submit reports with zero identity
-→ get paid via ZK proofs, not KYC
+→ receive a shielded, proof-gated payout without KYC
 
 Spam forfeits its fee to contract custody. Good research stays private. 🕵️
 
@@ -36,12 +36,12 @@ Identity = persistentHash(salt ‖ round ‖ secret). Keys never leave your mach
 
 ## Tweet 3 — CTA
 
-We're live on Midnight Preprod 🌒
+We're testing on Midnight Preprod 🌒
 
 Try the Anonity bounty board:
 → connect Lace or 1AM
 → post a bounty
-→ file an anonymous report (fee refunded if it's valid)
+→ file an anonymous report (5 NIGHT fee; outcome is recorded on-chain)
 → watch slop fees get forfeited
 
 Demo: https://an0n1ty.vercel.app/

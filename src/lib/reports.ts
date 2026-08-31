@@ -1,4 +1,11 @@
 import { supabase } from './supabase';
+import { getProgramMeta } from './programMeta';
+import { ensureOrgEncryptionKeyPair, hunterEncryptionKeyPair, isReportEnvelope, openJson, sealJson, type ReportEnvelope } from './report-crypto';
+
+export type PublicSubmission = {
+  id: bigint;
+  hunter: Uint8Array;
+};
 
 export type ReportContent = {
   submissionId: number;
@@ -10,166 +17,175 @@ export type ReportContent = {
   cvssVector: string;
   description: string;
   impact: string;
-  payoutAddress: string;
-  paymentStatus: 'unpaid' | 'paid';
-  paymentTxId: string | null;
-  paidAmount: number | null;
-  paidAt: string | null;
   createdAt: string;
 };
 
-export type ReportDraft = Pick<ReportContent, 'bountyId' | 'asset' | 'weakness' | 'severity' | 'cvssVersion' | 'cvssVector' | 'description' | 'impact' | 'payoutAddress'>;
+export type ReportDraft = Omit<ReportContent, 'submissionId' | 'createdAt'>;
 
 export type ReportComment = {
   id: number;
   submissionId: number;
-  author: string;
+  senderRole: 'org' | 'hunter';
   body: string;
   createdAt: string;
 };
 
-type Row = {
+type ReportRow = {
   submission_id: number;
   bounty_id: number;
-  asset: string;
-  weakness: string;
-  severity: string;
-  cvss_version: string;
-  cvss_vector: string;
-  description: string;
-  impact: string;
-  payout_address: string | null;
-  payment_status: 'unpaid' | 'paid';
+  org_ciphertext: string;
+  hunter_ciphertext: string;
+  hunter_encryption_public_key: string;
+  encryption_version: number;
   created_at: string;
 };
 
 type CommentRow = {
   id: number;
   submission_id: number;
-  author: string;
-  body: string;
+  org_ciphertext: string;
+  hunter_ciphertext: string;
+  sender_role: 'org' | 'hunter';
+  encryption_version: number;
   created_at: string;
 };
 
-const fromRow = (r: Row): ReportContent => ({
-  submissionId: r.submission_id,
-  bountyId: r.bounty_id,
-  asset: r.asset ?? '',
-  weakness: r.weakness ?? '',
-  severity: r.severity ?? '',
-  cvssVersion: r.cvss_version ?? 'CVSS v3.1',
-  cvssVector: r.cvss_vector ?? '',
-  description: r.description ?? '',
-  impact: r.impact ?? '',
-  payoutAddress: r.payout_address ?? '',
-  paymentStatus: r.payment_status ?? 'unpaid',
-  paymentTxId: null,
-  paidAmount: null,
-  paidAt: null,
-  createdAt: r.created_at,
-});
+type ReportPayload = Omit<ReportContent, 'submissionId' | 'createdAt'>;
+type CommentPayload = { body: string };
 
-const fromCommentRow = (r: CommentRow): ReportComment => ({
-  id: r.id,
-  submissionId: r.submission_id,
-  author: r.author,
-  body: r.body,
-  createdAt: r.created_at,
-});
+const REPORT_COLUMNS = 'submission_id,bounty_id,org_ciphertext,hunter_ciphertext,hunter_encryption_public_key,encryption_version,created_at';
+const COMMENT_COLUMNS = 'id,submission_id,org_ciphertext,hunter_ciphertext,sender_role,encryption_version,created_at';
 
-export async function insertReport(submissionId: bigint, draft: ReportDraft): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('reports').insert({
-    submission_id: Number(submissionId),
-    bounty_id: Number(draft.bountyId),
-    asset: draft.asset,
-    weakness: draft.weakness,
-    severity: draft.severity,
-    cvss_version: draft.cvssVersion,
-    cvss_vector: draft.cvssVector,
-    description: draft.description,
-    impact: draft.impact,
-    payout_address: draft.payoutAddress || null,
-  });
-  if (error) {
-    console.warn('report insert failed:', error.message);
+const parseEnvelope = (value: string): ReportEnvelope | null => {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return isReportEnvelope(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const decryptReport = async (row: ReportRow, recipient: 'org' | 'hunter', hunterSecretKey?: Uint8Array): Promise<ReportContent | null> => {
+  const envelope = parseEnvelope(recipient === 'org' ? row.org_ciphertext : row.hunter_ciphertext);
+  if (!envelope) return null;
+  try {
+    const keys = recipient === 'org'
+      ? await ensureOrgEncryptionKeyPair()
+      : await hunterEncryptionKeyPair(hunterSecretKey as Uint8Array, BigInt(row.submission_id));
+    const payload = await openJson<ReportPayload>(envelope, keys);
+    return { ...payload, submissionId: row.submission_id, createdAt: row.created_at };
+  } catch {
+    return null;
+  }
+};
+
+const decryptComment = async (row: CommentRow, recipient: 'org' | 'hunter', hunterSecretKey?: Uint8Array): Promise<ReportComment | null> => {
+  const envelope = parseEnvelope(recipient === 'org' ? row.org_ciphertext : row.hunter_ciphertext);
+  if (!envelope) return null;
+  try {
+    const keys = recipient === 'org'
+      ? await ensureOrgEncryptionKeyPair()
+      : await hunterEncryptionKeyPair(hunterSecretKey as Uint8Array, BigInt(row.submission_id));
+    const payload = await openJson<CommentPayload>(envelope, keys);
+    return { id: row.id, submissionId: row.submission_id, senderRole: row.sender_role, body: payload.body, createdAt: row.created_at };
+  } catch {
+    return null;
+  }
+};
+
+export async function insertReport(submissionId: bigint, txId: string, draft: ReportDraft, orgPublicKey: string, hunterSecretKey: Uint8Array): Promise<boolean> {
+  if (!supabase || !orgPublicKey.trim()) return false;
+  try {
+    const payload: ReportPayload = { ...draft };
+    const hunterKeys = await hunterEncryptionKeyPair(hunterSecretKey, submissionId);
+    const [orgEnvelope, hunterEnvelope] = await Promise.all([
+      sealJson(payload, orgPublicKey),
+      sealJson(payload, hunterKeys.publicKey),
+    ]);
+    const { error } = await supabase.functions.invoke('store-report', {
+      body: {
+        submission_id: Number(submissionId),
+        bounty_id: Number(draft.bountyId),
+        tx_id: txId,
+        org_ciphertext: JSON.stringify(orgEnvelope),
+        hunter_ciphertext: JSON.stringify(hunterEnvelope),
+        hunter_encryption_public_key: hunterKeys.publicKey,
+        encryption_version: 1,
+      },
+    });
+    if (error) throw error;
+    return true;
+  } catch (error: any) {
+    console.warn('encrypted report insert failed:', error?.message ?? error);
     return false;
   }
-  return true;
 }
 
 export async function getReport(submissionId: bigint): Promise<ReportContent | null> {
   if (!supabase) return null;
-  const { data } = await supabase
-    .from('reports')
-    .select('submission_id,bounty_id,asset,weakness,severity,cvss_version,cvss_vector,description,impact,payout_address,payment_status,created_at')
-    .eq('submission_id', Number(submissionId))
-    .maybeSingle();
-  return data ? hydratePayment(fromRow(data as Row)) : null;
+  const { data } = await supabase.from('reports').select(REPORT_COLUMNS).eq('submission_id', Number(submissionId)).maybeSingle();
+  return data ? decryptReport(data as ReportRow, 'org') : null;
 }
 
-async function hydratePayment(report: ReportContent): Promise<ReportContent> {
-  if (!supabase) return report;
-  const { data } = await supabase.from('report_payments').select('tx_reference,amount,paid_at').eq('submission_id', report.submissionId).maybeSingle();
-  return data ? { ...report, paymentStatus: 'paid', paymentTxId: data.tx_reference, paidAmount: Number(data.amount), paidAt: data.paid_at } : report;
-}
-
-export async function listReportsForCurrentHunter(): Promise<ReportContent[]> {
+export async function listReportsForHunter(hunterSecretKey: Uint8Array, matchingSubmissions: PublicSubmission[]): Promise<ReportContent[]> {
   if (!supabase) return [];
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
-  if (!userId) return [];
+  const allowedSubmissionIds = new Set(matchingSubmissions.map((submission) => Number(submission.id)));
+  if (allowedSubmissionIds.size === 0) return [];
   const { data } = await supabase
     .from('reports')
-    .select('submission_id,bounty_id,asset,weakness,severity,cvss_version,cvss_vector,description,impact,payout_address,payment_status,created_at')
-    .eq('author', userId)
+    .select(REPORT_COLUMNS)
+    .in('submission_id', [...allowedSubmissionIds])
     .order('created_at', { ascending: false });
-  return Promise.all((data ?? []).map((r) => hydratePayment(fromRow(r as Row))));
+  const decrypted = await Promise.all((data ?? [])
+    .filter((row) => allowedSubmissionIds.has((row as ReportRow).submission_id))
+    .map((row) => decryptReport(row as ReportRow, 'hunter', hunterSecretKey)));
+  return decrypted.filter((report): report is ReportContent => report !== null);
 }
 
 export async function listReportsForBounty(bountyId: bigint): Promise<ReportContent[]> {
   if (!supabase) return [];
-  const { data } = await supabase
-    .from('reports')
-    .select('submission_id,bounty_id,asset,weakness,severity,cvss_version,cvss_vector,description,impact,payout_address,payment_status,created_at')
-    .eq('bounty_id', Number(bountyId));
-  return Promise.all((data ?? []).map((r) => hydratePayment(fromRow(r as Row))));
+  const { data } = await supabase.from('reports').select(REPORT_COLUMNS).eq('bounty_id', Number(bountyId)).order('created_at', { ascending: false });
+  const decrypted = await Promise.all((data ?? []).map((row) => decryptReport(row as ReportRow, 'org')));
+  return decrypted.filter((report): report is ReportContent => report !== null);
 }
 
-export async function markReportPaid(submissionId: bigint, amount: bigint, recipientAddress: string, paymentTxId: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('report_payments').insert({
-    submission_id: Number(submissionId),
-    recipient_address: recipientAddress,
-    amount: Number(amount),
-    tx_reference: paymentTxId,
-  });
-  if (error) {
-    console.warn('report payment update failed:', error.message);
-    return false;
-  }
-  return true;
+export async function listReportComments(submissionId: bigint, viewer: 'org' | 'hunter', hunterSecretKey?: Uint8Array): Promise<ReportComment[]> {
+  if (!supabase || viewer === 'hunter' && !hunterSecretKey) return [];
+  const { data } = await supabase.from('report_comments').select(COMMENT_COLUMNS).eq('submission_id', Number(submissionId)).order('created_at', { ascending: true });
+  const decrypted = await Promise.all((data ?? []).map((row) => decryptComment(row as CommentRow, viewer, hunterSecretKey)));
+  return decrypted.filter((comment): comment is ReportComment => comment !== null);
 }
 
-export async function listReportComments(submissionId: bigint): Promise<ReportComment[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from('report_comments')
-    .select('id,submission_id,author,body,created_at')
-    .eq('submission_id', Number(submissionId))
-    .order('created_at', { ascending: true });
-  return (data ?? []).map((r) => fromCommentRow(r as CommentRow));
-}
-
-export async function insertReportComment(submissionId: bigint, body: string): Promise<boolean> {
+export async function insertReportComment(submissionId: bigint, body: string, senderRole: 'org' | 'hunter', hunterSecretKey?: Uint8Array): Promise<boolean> {
   if (!supabase || !body.trim()) return false;
-  const { error } = await supabase.from('report_comments').insert({
-    submission_id: Number(submissionId),
-    body: body.trim(),
-  });
-  if (error) {
-    console.warn('report comment insert failed:', error.message);
+  try {
+    const { data: reportData } = await supabase.from('reports').select('bounty_id,hunter_encryption_public_key').eq('submission_id', Number(submissionId)).maybeSingle();
+    if (!reportData) return false;
+    const meta = await getProgramMeta(BigInt(reportData.bounty_id as number));
+    if (!meta?.encryptionPublicKey) return false;
+    const orgKeys = await ensureOrgEncryptionKeyPair();
+    const hunterPublicKey = reportData.hunter_encryption_public_key as string;
+    if (senderRole === 'hunter') {
+      if (!hunterSecretKey) return false;
+      const derivedHunterKeys = await hunterEncryptionKeyPair(hunterSecretKey, submissionId);
+      if (derivedHunterKeys.publicKey !== hunterPublicKey) return false;
+    }
+    const payload: CommentPayload = { body: body.trim() };
+    const [orgEnvelope, hunterEnvelope] = await Promise.all([
+      sealJson(payload, orgKeys.publicKey),
+      sealJson(payload, hunterPublicKey),
+    ]);
+    const { error } = await supabase.from('report_comments').insert({
+      submission_id: Number(submissionId),
+      org_ciphertext: JSON.stringify(orgEnvelope),
+      hunter_ciphertext: JSON.stringify(hunterEnvelope),
+      sender_role: senderRole,
+      encryption_version: 1,
+    });
+    if (error) throw error;
+    return true;
+  } catch (error: any) {
+    console.warn('encrypted comment insert failed:', error?.message ?? error);
     return false;
   }
-  return true;
 }

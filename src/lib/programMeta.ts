@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { ensureOrgEncryptionKeyPair } from './report-crypto';
 
 export type ScopeRow = { assetType: string; target: string; maxBounty: string };
 export type PrizeRange = { min: string; max: string };
@@ -19,6 +20,7 @@ export type ProgramMeta = {
   scope: ScopeRow[];
   exclusions: string;
   prizeRanges: PrizeRanges;
+  encryptionPublicKey: string;
 };
 
 export type ProgramMetaInput = Omit<ProgramMeta, 'bountyId'>;
@@ -33,6 +35,7 @@ type Row = {
   scope: ScopeRow[] | null;
   exclusions: string;
   prize_ranges: PrizeRanges | null;
+  encryption_public_key: string | null;
 };
 
 const fromRow = (r: Row): ProgramMeta => ({
@@ -45,6 +48,7 @@ const fromRow = (r: Row): ProgramMeta => ({
   scope: r.scope ?? [],
   exclusions: r.exclusions ?? '',
   prizeRanges: r.prize_ranges ?? emptyPrizeRanges,
+  encryptionPublicKey: r.encryption_public_key ?? '',
 });
 
 const toRow = (bountyId: number, m: ProgramMetaInput) => ({
@@ -57,6 +61,7 @@ const toRow = (bountyId: number, m: ProgramMetaInput) => ({
   scope: m.scope,
   exclusions: m.exclusions,
   prize_ranges: m.prizeRanges,
+  encryption_public_key: m.encryptionPublicKey,
   updated_at: new Date().toISOString(),
 });
 
@@ -78,6 +83,7 @@ export const emptyProgramForm: ProgramFormSeed = {
   scope: [{ assetType: 'WILDCARD', target: '', maxBounty: '' }],
   exclusions: '',
   prizeRanges: emptyPrizeRanges,
+  encryptionPublicKey: '',
   // The Compact contract still requires a positive legacy field; actual
   // researcher payouts are entered per report in NIGHT during review.
   amount: '1',
@@ -95,9 +101,10 @@ export const isEmptyMeta = (m: ProgramMetaInput): boolean =>
 
 export async function upsertProgramMeta(bountyId: bigint, meta: ProgramMetaInput): Promise<void> {
   if (!supabase || isEmptyMeta(meta)) return;
+  const encryptionKeys = await ensureOrgEncryptionKeyPair();
   const { error } = await supabase
     .from('program_meta')
-    .upsert(toRow(Number(bountyId), meta), { onConflict: 'bounty_id' });
+    .upsert(toRow(Number(bountyId), { ...meta, encryptionPublicKey: encryptionKeys.publicKey }), { onConflict: 'bounty_id' });
   if (error) console.warn('program_meta upsert failed:', error.message);
 }
 
@@ -105,7 +112,7 @@ export async function getProgramMeta(bountyId: bigint): Promise<ProgramMeta | nu
   if (!supabase) return null;
   const { data } = await supabase
     .from('program_meta')
-    .select('bounty_id,entity_name,short_description,cvss_version,policy,highlights,scope,exclusions,prize_ranges')
+    .select('bounty_id,entity_name,short_description,cvss_version,policy,highlights,scope,exclusions,prize_ranges,encryption_public_key')
     .eq('bounty_id', Number(bountyId))
     .maybeSingle();
   return data ? fromRow(data as Row) : null;
@@ -115,7 +122,7 @@ export async function listProgramMeta(): Promise<ProgramMeta[]> {
   if (!supabase) return [];
   const { data } = await supabase
     .from('program_meta')
-    .select('bounty_id,entity_name,short_description,cvss_version,policy,highlights,scope,exclusions,prize_ranges');
+    .select('bounty_id,entity_name,short_description,cvss_version,policy,highlights,scope,exclusions,prize_ranges,encryption_public_key');
   return (data ?? []).map((r) => fromRow(r as Row));
 }
 

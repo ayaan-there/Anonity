@@ -1,7 +1,14 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
 import { navigate } from '../router';
-import { authReady, saveProfileWalletAddress, signInWithEmail, signUpWithEmail } from '../lib/supabase';
+import { authReady, signInWithEmail, signUpWithEmail } from '../lib/supabase';
+import {
+  downloadHunterSecretBackup,
+  exportHunterSecretKey,
+  getHunterSecretKey,
+  getOrCreateHunterSecretKey,
+  importHunterSecretKey,
+} from '../lib/hunter-identity';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; role: 'hunter' | 'org' };
 
@@ -9,171 +16,112 @@ const Login: React.FC<Props> = ({ midnight, role }) => {
   const [mode, setMode] = React.useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [walletAddress, setWalletAddress] = React.useState('');
   const [pending, setPending] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
+  const [hasHunterKey, setHasHunterKey] = React.useState(() => Boolean(getHunterSecretKey()));
+  const fileRef = React.useRef<HTMLInputElement>(null);
   const isOrg = role === 'org';
 
   const routeAfterAuth = (r: 'hunter' | 'org') => {
     midnight.setPersona(r);
-    if (r === 'org') navigate(midnight.bounties.length === 0 ? '/create' : '/dashboard');
-    else navigate('/programs');
+    navigate(r === 'org' ? (midnight.bounties.length === 0 ? '/create' : '/dashboard') : '/programs');
   };
 
-  const handleEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const enterHunter = () => {
+    getOrCreateHunterSecretKey();
+    setHasHunterKey(true);
+    setNotice('LOCAL HUNTER IDENTITY READY. BACK UP YOUR KEY BEFORE SUBMITTING.');
+    midnight.setPersona('hunter');
+    setTimeout(() => navigate('/programs'), 500);
+  };
+
+  const restoreHunter = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const encoded = await file.text();
+    if (!importHunterSecretKey(encoded)) {
+      setNotice('THAT BACKUP IS NOT A VALID ANONITY HUNTER KEY.');
+      return;
+    }
+    setHasHunterKey(true);
+    setNotice('HUNTER IDENTITY RESTORED LOCALLY.');
+    midnight.setPersona('hunter');
+    setTimeout(() => navigate('/programs'), 500);
+  };
+
+  const handleOrgEmail = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!email || !password) return;
     setPending(true);
     setNotice(null);
-
     if (!authReady) {
-      // Demo entry: no Supabase yet — the bootcamp demo account model
-      // goes live once VITE_SUPABASE_URL/ANON_KEY are configured.
-      midnight.setPersona(role);
-      setNotice(`DEMO LOGIN (${role.toUpperCase()}) — AUTHENTICATED LOCALLY.`);
-      setTimeout(() => {
-        if (role === 'org') navigate(midnight.bounties.length === 0 ? '/create' : '/dashboard');
-        else navigate('/programs');
-      }, 900);
+      midnight.setPersona('org');
+      setNotice('DEMO ORGANIZATION SESSION READY.');
+      setTimeout(() => navigate('/dashboard'), 500);
+      setPending(false);
       return;
     }
-
     try {
       if (mode === 'signup') {
-        const { session: s } = await signUpWithEmail(email, password, role, walletAddress);
-        if (role === 'hunter' && walletAddress.trim() && s?.user) {
-          await saveProfileWalletAddress(walletAddress);
-        }
-        if (s?.user) {
-          routeAfterAuth(role);
-        } else {
-          setNotice('ACCOUNT CREATED — SIGN IN NOW.');
-        }
+        const data = await signUpWithEmail(email, password);
+        if (data.session?.user) routeAfterAuth('org');
+        else setNotice('ORGANIZATION CREATED. CHECK YOUR EMAIL, THEN SIGN IN.');
       } else {
-        const { role: accountRole } = await signInWithEmail(email, password);
-        const effective = accountRole ?? role;
-        midnight.setPersona(effective);
-        if (effective === 'org') {
-          navigate(midnight.bounties.length === 0 ? '/create' : '/dashboard');
-        } else {
-          navigate('/programs');
-        }
+        await signInWithEmail(email, password);
+        routeAfterAuth('org');
       }
-    } catch (err: any) {
-      setNotice(err?.message ?? 'Authentication failed.');
+    } catch (error: any) {
+      setNotice(error?.message ?? 'Organization authentication failed.');
     } finally {
       setPending(false);
     }
   };
 
+  if (!isOrg) {
+    return (
+      <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', padding: 'var(--an-stack-lg) 0' }}>
+        <div className="an-hatch" />
+        <div className="an-brutal" style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 640, background: 'var(--an-surface)', padding: 'var(--an-stack-lg) var(--an-stack-md)', display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <h1 className="an-hook" style={{ fontSize: 'clamp(34px, 5vw, 72px)' }}>PROVE WITHOUT REVEALING</h1>
+            <p className="an-label an-secondary-text an-brutal-t" style={{ marginTop: 'var(--an-stack-sm)', paddingTop: 'var(--an-unit)' }}>NO EMAIL. NO NAME. NO HUNTER ACCOUNT.</p>
+          </div>
+          <p className="an-dense an-secondary-text">Anonity creates a local secret identity in this browser. It never leaves your device and cannot be recovered if lost.</p>
+          <button type="button" className="an-btn" onClick={enterHunter} disabled={pending}>
+            {hasHunterKey ? 'CONTINUE WITH LOCAL IDENTITY' : 'CREATE LOCAL HUNTER IDENTITY'}
+          </button>
+          <button type="button" className="an-btn an-btn--ghost" onClick={() => fileRef.current?.click()}>RESTORE HUNTER KEY BACKUP</button>
+          <input ref={fileRef} type="file" accept="text/plain,.txt" onChange={(event) => void restoreHunter(event)} style={{ display: 'none' }} />
+          {hasHunterKey && (
+            <button type="button" className="an-label an-secondary-text" onClick={downloadHunterSecretBackup} style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+              DOWNLOAD KEY BACKUP ({exportHunterSecretKey().slice(0, 8)}...)
+            </button>
+          )}
+          {notice && <p className="an-dense" style={{ color: notice.startsWith('LOCAL') || notice.startsWith('HUNTER') ? 'var(--an-accent)' : 'var(--an-error)', margin: 0 }}>{notice}</p>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', padding: 'var(--an-stack-lg) 0' }}>
       <div className="an-hatch" />
-      <div
-        className="an-brutal"
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          width: '100%',
-          maxWidth: 640,
-          background: 'var(--an-surface)',
-          padding: 'var(--an-stack-lg) var(--an-stack-md) var(--an-stack-md)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--an-stack-sm)',
-        }}
-      >
+      <div className="an-brutal" style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 640, background: 'var(--an-surface)', padding: 'var(--an-stack-lg) var(--an-stack-md)', display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)' }}>
         <div style={{ textAlign: 'center' }}>
-          <h1 className="an-hook" style={{ fontSize: 'clamp(34px, 5vw, 72px)' }}>
-            {isOrg ? 'PROTECT YOUR ORG WITH US' : 'prove without revealing'}
-          </h1>
-          <p
-            className="an-label an-secondary-text an-brutal-t"
-            style={{ marginTop: 'var(--an-stack-sm)', paddingTop: 'var(--an-unit)' }}
-          >
-            {isOrg
-              ? 'YOU MIGHT BUT THE HACKERS NEVER STOP. LET US HANDLE THE LOAD.'
-              : 'BUILD A REPUTATION. NOT AN EXPOSURE TRAIL.'}
-          </p>
+          <h1 className="an-hook" style={{ fontSize: 'clamp(34px, 5vw, 72px)' }}>PROTECT YOUR ORG WITH US</h1>
+          <p className="an-label an-secondary-text an-brutal-t" style={{ marginTop: 'var(--an-stack-sm)', paddingTop: 'var(--an-unit)' }}>ORGANIZATION TRIAGE ACCESS</p>
         </div>
-
-        <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)', width: '100%', marginTop: 'var(--an-stack-sm)' }}>
-          <div>
-            <label className="an-label an-secondary-text an-field-label" htmlFor="email">EMAIL</label>
-            <input
-              id="email"
-              type="email"
-              required
-              className="an-input"
-              placeholder="terminal@anonity.network"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-          </div>
-          {mode === 'signup' && !isOrg && (
-            <div>
-              <label className="an-label an-secondary-text an-field-label" htmlFor="wallet-address">PAYOUT WALLET ADDRESS <span className="an-dim">(OPTIONAL)</span></label>
-              <input id="wallet-address" className="an-input" placeholder="Your Preprod NIGHT address" value={walletAddress} onChange={(e) => setWalletAddress(e.target.value)} autoComplete="off" />
-              <p className="an-label an-dim" style={{ marginTop: 6 }}>Used only to receive valid-report payouts. You can add it later.</p>
-            </div>
-          )}
-          <div>
-            <label className="an-label an-secondary-text an-field-label" htmlFor="pass">PASSWORD</label>
-            <input
-              id="pass"
-              type="password"
-              required
-              minLength={6}
-              className="an-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            />
-          </div>
-          <button type="submit" disabled={pending} className="an-btn">
-            {pending ? 'AWAITING…' : mode === 'signin' ? 'CONTINUE WITH EMAIL' : 'JOIN ANONITY'}
-          </button>
+        <form onSubmit={(event) => void handleOrgEmail(event)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-stack-sm)' }}>
+          <label className="an-label an-secondary-text" htmlFor="org-email">EMAIL</label>
+          <input id="org-email" type="email" required className="an-input" placeholder="security@example.org" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+          <label className="an-label an-secondary-text" htmlFor="org-password">PASSWORD</label>
+          <input id="org-password" type="password" required minLength={6} className="an-input" placeholder="********" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
+          <button type="submit" disabled={pending} className="an-btn">{pending ? 'AWAITING...' : mode === 'signin' ? 'CONTINUE WITH EMAIL' : 'CREATE ORGANIZATION'}</button>
         </form>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--an-unit)' }}>
-          <div style={{ flexGrow: 1, height: 1, background: 'var(--an-outline-variant)' }} />
-          <span className="an-label an-dim">OR</span>
-          <div style={{ flexGrow: 1, height: 1, background: 'var(--an-outline-variant)' }} />
-        </div>
-
-        <button
-          type="button"
-          disabled
-          className="an-btn an-btn--ghost"
-          title="Google sign-in will enable after domain verification"
-          style={{ width: '100%' }}
-        >
-          <span className="msx" style={{ fontSize: 18 }}>login</span> SIGN IN WITH GOOGLE
+        {notice && <p className="an-dense" style={{ color: notice.startsWith('DEMO') || notice.startsWith('ORGANIZATION') ? 'var(--an-accent)' : 'var(--an-error)', margin: 0 }}>{notice}</p>}
+        <button type="button" onClick={() => setMode((value) => value === 'signin' ? 'signup' : 'signin')} className="an-label an-secondary-text" style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+          {mode === 'signin' ? 'New organization? Create account' : 'Already have an account? Sign in'}
         </button>
-
-        {notice && (
-          <p className="an-dense" style={{ color: notice.startsWith('DEMO') || notice.startsWith('CHECK') ? 'var(--an-accent)' : 'var(--an-error)', margin: 0 }}>
-            {notice}
-          </p>
-        )}
-
-        <div className="an-brutal-t" style={{ marginTop: 'var(--an-stack-sm)', paddingTop: 'var(--an-stack-sm)', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => setMode((m) => (m === 'signin' ? 'signup' : 'signin'))}
-            className="an-label an-secondary-text"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', padding: 2 }}
-          >
-            {mode === 'signin' ? 'New to Anonity? Create account' : 'Already have an account? Sign in'}
-          </button>
-          <p className="an-label an-dim" style={{ marginTop: 'var(--an-stack-sm)' }}>
-            {isOrg
-              ? 'ON-CHAIN IDENTITY = ORG COMMITMENT. WALLET CONNECTION COMES AFTER LOGIN.'
-              : 'NO NAME REQUIRED. YOUR ON-CHAIN IDENTITY IS A SECRET KEY THAT NEVER LEAVES THIS BROWSER.'}
-          </p>
-        </div>
       </div>
     </div>
   );

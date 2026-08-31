@@ -10,16 +10,29 @@ export type ImpureCircuits<PS> = {
   hunterKey(context: __compactRuntime.CircuitContext<PS>, sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
   postBounty(context: __compactRuntime.CircuitContext<PS>,
              amount_0: bigint,
-             deadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+             deadline_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
   updateBounty(context: __compactRuntime.CircuitContext<PS>,
                rawId_0: bigint,
                rawAmount_0: bigint,
                rawDeadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   submitReport(context: __compactRuntime.CircuitContext<PS>,
-               rawBountyId_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+               rawBountyId_0: bigint,
+               feeCoin_0: { nonce: Uint8Array, color: Uint8Array, value: bigint
+                          }): __compactRuntime.CircuitResults<PS, bigint>;
   resolveSubmission(context: __compactRuntime.CircuitContext<PS>,
                     rawSubmissionId_0: bigint,
-                    rawOutcome_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+                    rawOutcome_0: bigint,
+                    payoutCoin_0: { nonce: Uint8Array,
+                                    color: Uint8Array,
+                                    value: bigint
+                                  }): __compactRuntime.CircuitResults<PS, []>;
+  claimPayout(context: __compactRuntime.CircuitContext<PS>,
+              rawSubmissionId_0: bigint,
+              payoutCoin_0: { nonce: Uint8Array,
+                              color: Uint8Array,
+                              value: bigint,
+                              mt_index: bigint
+                            }): __compactRuntime.CircuitResults<PS, []>;
   getBounty(context: __compactRuntime.CircuitContext<PS>, rawId_0: bigint): __compactRuntime.CircuitResults<PS, [bigint,
                                                                                                                  bigint,
                                                                                                                  Uint8Array,
@@ -38,16 +51,29 @@ export type ProvableCircuits<PS> = {
   hunterKey(context: __compactRuntime.CircuitContext<PS>, sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
   postBounty(context: __compactRuntime.CircuitContext<PS>,
              amount_0: bigint,
-             deadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+             deadline_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
   updateBounty(context: __compactRuntime.CircuitContext<PS>,
                rawId_0: bigint,
                rawAmount_0: bigint,
                rawDeadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   submitReport(context: __compactRuntime.CircuitContext<PS>,
-               rawBountyId_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+               rawBountyId_0: bigint,
+               feeCoin_0: { nonce: Uint8Array, color: Uint8Array, value: bigint
+                          }): __compactRuntime.CircuitResults<PS, bigint>;
   resolveSubmission(context: __compactRuntime.CircuitContext<PS>,
                     rawSubmissionId_0: bigint,
-                    rawOutcome_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+                    rawOutcome_0: bigint,
+                    payoutCoin_0: { nonce: Uint8Array,
+                                    color: Uint8Array,
+                                    value: bigint
+                                  }): __compactRuntime.CircuitResults<PS, []>;
+  claimPayout(context: __compactRuntime.CircuitContext<PS>,
+              rawSubmissionId_0: bigint,
+              payoutCoin_0: { nonce: Uint8Array,
+                              color: Uint8Array,
+                              value: bigint,
+                              mt_index: bigint
+                            }): __compactRuntime.CircuitResults<PS, []>;
   getBounty(context: __compactRuntime.CircuitContext<PS>, rawId_0: bigint): __compactRuntime.CircuitResults<PS, [bigint,
                                                                                                                  bigint,
                                                                                                                  Uint8Array,
@@ -69,16 +95,29 @@ export type Circuits<PS> = {
   hunterKey(context: __compactRuntime.CircuitContext<PS>, sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
   postBounty(context: __compactRuntime.CircuitContext<PS>,
              amount_0: bigint,
-             deadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+             deadline_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
   updateBounty(context: __compactRuntime.CircuitContext<PS>,
                rawId_0: bigint,
                rawAmount_0: bigint,
                rawDeadline_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   submitReport(context: __compactRuntime.CircuitContext<PS>,
-               rawBountyId_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+               rawBountyId_0: bigint,
+               feeCoin_0: { nonce: Uint8Array, color: Uint8Array, value: bigint
+                          }): __compactRuntime.CircuitResults<PS, bigint>;
   resolveSubmission(context: __compactRuntime.CircuitContext<PS>,
                     rawSubmissionId_0: bigint,
-                    rawOutcome_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+                    rawOutcome_0: bigint,
+                    payoutCoin_0: { nonce: Uint8Array,
+                                    color: Uint8Array,
+                                    value: bigint
+                                  }): __compactRuntime.CircuitResults<PS, []>;
+  claimPayout(context: __compactRuntime.CircuitContext<PS>,
+              rawSubmissionId_0: bigint,
+              payoutCoin_0: { nonce: Uint8Array,
+                              color: Uint8Array,
+                              value: bigint,
+                              mt_index: bigint
+                            }): __compactRuntime.CircuitResults<PS, []>;
   getBounty(context: __compactRuntime.CircuitContext<PS>, rawId_0: bigint): __compactRuntime.CircuitResults<PS, [bigint,
                                                                                                                  bigint,
                                                                                                                  Uint8Array,
@@ -110,9 +149,17 @@ export type Ledger = {
     member(key_0: bigint): boolean;
     lookup(key_0: bigint): { bountyId: bigint,
                              hunter: Uint8Array,
-                             outcome: number
+                             outcome: number,
+                             payoutAmount: bigint
                            };
-    [Symbol.iterator](): Iterator<[bigint, { bountyId: bigint, hunter: Uint8Array, outcome: number }]>
+    [Symbol.iterator](): Iterator<[bigint, { bountyId: bigint, hunter: Uint8Array, outcome: number, payoutAmount: bigint }]>
+  };
+  claimed: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(key_0: bigint): boolean;
+    lookup(key_0: bigint): boolean;
+    [Symbol.iterator](): Iterator<[bigint, boolean]>
   };
   readonly nextBountyId: bigint;
   readonly nextSubmissionId: bigint;

@@ -22,7 +22,7 @@ const App: React.FC = () => {
 
   useEffect(() => { void initAuth(); }, []);
 
-  // Persona follows the supabase role — an org account opens org tooling
+  // Org persona follows Supabase. Hunter persona is local and has no session.
   const { setPersona } = midnight;
   useEffect(() => {
     if (session.role) setPersona(session.role);
@@ -36,6 +36,7 @@ const App: React.FC = () => {
 
   const isConnected = midnight.walletState === 'connected';
   const isConnecting = midnight.walletState === 'connecting';
+  const hasPersona = Boolean(midnight.persona || session.email);
   const shortAddr = midnight.address
     ? `${midnight.address.slice(0, 10)}…${midnight.address.slice(-6)}`
     : null;
@@ -88,10 +89,10 @@ const App: React.FC = () => {
           <NavLink to="/programs" label="PROGRAMS" active={route.page === 'programs' || route.page === 'program'} />
           {midnight.persona === 'org' && <NavLink to="/dashboard" label="DASHBOARD" active={route.page === 'dashboard'} />}
           {!isConnected && <NavLink to="/orgs" label="FOR ORGS" active={route.page === 'orgs'} />}
-          {isConnected && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
+          {hasPersona && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
         </div>
         <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
-          {session.email ? (
+          {hasPersona ? (
             <>
               {!isConnected ? (
                 <button
@@ -114,10 +115,10 @@ const App: React.FC = () => {
                   </button>
                 </>
               ) : null}
-              <span className="an-label an-dim">{session.email}</span>
+              <span className="an-label an-dim">{session.email ?? 'LOCAL HUNTER ID'}</span>
               <button
                 onClick={() => {
-                  void signOut();
+                  if (session.email) void signOut();
                   midnight.disconnect();
                   midnight.setPersona(null);
                   navigate('/');

@@ -28,17 +28,29 @@ Connect your wallet and use the Anonity bounty board live on Preprod.
 
 Bug bounty platforms have an identity problem. Security researchers must disclose who they are to get paid, which exposes them to retaliation, doxxing, and legal risk. Organizations can't verify that reports come from distinct, serious researchers rather than one spammer with ten email addresses. And everyone pays middleman fees for trust that cryptography could provide directly.
 
-**Anonity** fixes both sides. Organizations post bounties; researchers submit vulnerability reports anonymously; every submission carries a 5 NIGHT anti-spam fee held by the contract. The contract records whether that fee is refundable or forfeited, while the refund transfer remains gated on a privacy-preserving recipient design. Payment rights travel with zero-knowledge proofs, not identities.
+**Anonity** fixes both sides. Organizations post bounties; researchers submit vulnerability reports anonymously; every submission carries a 5 NIGHT anti-spam fee received as a shielded contract output. Report content and triage messages are sealed in the browser for the organization and the hunter separately. Payment rights are proof-gated, not account-gated.
 
-This repo ships the MVP privacy core of **Anonity**: the bounty contract (`contracts/anonity.compact`) with program posting, anonymous submission with fee escrow, org-only resolution across three outcomes, and dynamic NIGHT payouts handled during report review — plus a React frontend wired to Preprod. It's built on Midnight because only its data-protection model makes this design possible — transparent chains expose sender, recipient, and amount of every transaction, destroying hunter anonymity at the protocol level.
+This repo ships the privacy core of **Anonity**: the bounty contract (`contracts/anonity.compact`) with program posting, anonymous submission with shielded fee escrow, org-only resolution across three outcomes, and a proof-gated shielded payout claim circuit — plus a React frontend wired to Preprod. The configured Supabase project has the private-report schema applied. The final qualified-coin handoff for claim UX, updated-contract redeployment, and end-to-end wallet/privacy tests are still required before this is presented as production-ready.
 
 ---
 
 ## Privacy Model
 
 - **PUBLIC (on-chain, anyone can see):** bounty amounts and deadlines; that a submission exists against a bounty; resolution outcomes (valid / duplicate / slop); aggregate fee accounting (escrowed, forfeited, refunded, paid); identity *commitments* (one-way hashes).
-- **PRIVATE (private witness, never on-chain):** each participant's 32-byte secret key (`orgSecretKey`, `hunterSecretKey`); the link between any commitment and any wallet address; report contents (stored off-chain entirely).
-- **What the user PROVES without revealing:** that the org resolving a submission is the exact party that posted that bounty; that each hunter identity is a stable commitment derived from a secret only they hold — so payouts go to the right anonymous person while the chain learns nothing about who they are or what else they've done.
+- **PRIVATE (private witness or sealed off-chain data):** each participant's 32-byte secret key; the link between any commitment and any wallet address; report and comment bodies; payout recipient address and account identity.
+- **What the user PROVES without revealing:** that the org resolving a submission owns the bounty commitment, and that the hunter claiming a valid payout owns the matching hunter secret. Supabase can route ciphertext but cannot decrypt it with its database credentials.
+- **LIMITATION:** browser, hosting, wallet, and network operators can still observe request metadata such as timing and IP address. Anonity does not provide connection-level anonymity.
+
+### Observer boundary
+
+| Observer | Can learn | Cannot learn from the platform data alone |
+|----------|-----------|--------------------------------------------|
+| Supabase/database operator | Public IDs, timestamps, ciphertext, and organization metadata | Report text, triage bodies, hunter secret, or the hunter-to-wallet link |
+| Chain observer | Bounty/submission commitments, outcomes, and public transaction data | The secret behind a commitment or a plaintext report; shielded recipients are not stored as report payout addresses |
+| Hosting/network operator | Browser request timing and source IP | The cryptographic identity that owns a hunter commitment |
+| Correct organization | Its own decrypted reports and triage thread | The hunter's real-world identity or funding-wallet identity |
+
+This is a cryptographic/application privacy boundary, not connection-level anonymity. A compelled or leaked hosting, wallet, or network log may still correlate timing and IP data.
 
 ---
 
@@ -89,8 +101,19 @@ Open the URL printed by Vite (your current local preview is http://localhost:417
 Deploy the contract yourself with:
 
 ```bash
-COUNTER_OWNER_SECRET=<hex> npm run deploy:anonity -- --network preprod
+npm run deploy:anonity -- --network preprod
 ```
+
+After deployment, set `VITE_ANONITY_CONTRACT` to the printed address and deploy the chain-gated report writer:
+
+```bash
+supabase functions deploy store-report --project-ref <supabase-project-ref>
+supabase secrets set --project-ref <supabase-project-ref> ANONITY_CONTRACT_ADDRESS=<new-contract-address>
+```
+
+The function uses the public Midnight indexer to verify a finalized `submitReport` action before it writes ciphertext with the server-side database role. Never put the service-role key in frontend environment variables.
+
+Deployment state and wallet seeds stay in the ignored `.midnight-state.json` file. Never commit that file or paste its contents into documentation, issues, or logs.
 
 ---
 
@@ -100,13 +123,13 @@ COUNTER_OWNER_SECRET=<hex> npm run deploy:anonity -- --network preprod
 npm test
 ```
 
-32 tests across 7 suites — circuit logic, state transitions, and privacy/authorisation for both contracts, all on the local emulator (no network needed).
+40 tests across 8 suites — circuit logic, state transitions, and privacy/authorization for both contracts, all on the local emulator (no network needed).
 
 ---
 
 ## CI/CD
 
-Every push and pull request to `main` runs [.github/workflows/ci.yml](.github/workflows/ci.yml): install → Compact compile of both contracts → 29-test emulator suite → typecheck → production build. The badge at the top of this README shows the current status.
+Every push and pull request to `main` runs [.github/workflows/ci.yml](.github/workflows/ci.yml): install → Compact compile of both contracts → emulator suite → typecheck → production build. The badge at the top of this README shows the current status.
 
 ---
 

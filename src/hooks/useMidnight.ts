@@ -7,7 +7,7 @@ import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-conf
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import type { ProofProvider, UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import { toHex, fromHex } from '@midnight-ntwrk/midnight-js-utils';
-import { Binding, CostModel, Proof, SignatureEnabled, Transaction, unshieldedToken, type FinalizedTransaction, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
+import { Binding, CostModel, Proof, SignatureEnabled, Transaction, createShieldedCoinInfo, encodeQualifiedShieldedCoinInfo, encodeShieldedCoinInfo, nativeToken, type FinalizedTransaction, type QualifiedShieldedCoinInfo, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { InitialAPI, ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
 import semver from 'semver';
 import { firstValueFrom, interval, map, filter, take, timeout, concatMap, catchError, throwError } from 'rxjs';
@@ -20,6 +20,7 @@ import {
   AnonityModule,
   type AnonityPrivateState,
 } from '../lib/anonity-contract';
+import { getOrCreateHunterSecretKey, getOrCreateOrgSecretKey } from '../lib/hunter-identity';
 
 export type BountyRow = {
   id: bigint;
@@ -34,6 +35,7 @@ export type SubmissionRow = {
   bountyId: bigint;
   hunter: Uint8Array;
   outcome: number;
+  payoutAmount: bigint;
 };
 
 export type BoardStats = {
@@ -81,10 +83,13 @@ const deepestErrorMessage = (e: unknown): string => {
 };
 
 export type BoardView = {
+  round: bigint;
   bounties: BountyRow[];
   submissions: SubmissionRow[];
   stats: BoardStats;
 };
+
+type CircuitRunResult = { ok: boolean; result: unknown; txId: string | null };
 
 const fetchBoardState = async (contractAddress: string): Promise<BoardView | null> => {
   try {
@@ -111,11 +116,12 @@ const fetchBoardState = async (contractAddress: string): Promise<BoardView | nul
 
     const submissions: SubmissionRow[] = [];
     for (const [id, s] of l.submissions) {
-      submissions.push({ id, bountyId: s.bountyId, hunter: s.hunter, outcome: s.outcome });
+      submissions.push({ id, bountyId: s.bountyId, hunter: s.hunter, outcome: s.outcome, payoutAmount: s.payoutAmount });
     }
     submissions.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
     return {
+      round: BigInt(l.round),
       bounties,
       submissions,
       stats: {
@@ -351,15 +357,16 @@ export interface UseMidnightReturn {
   clearError: () => void;
   bounties: BountyRow[];
   submissions: SubmissionRow[];
+  round: bigint | null;
   boardStats: BoardStats | null;
   boardReady: boolean;
   persona: Persona | null;
   setPersona: (p: Persona | null) => void;
   postBounty: (amount: bigint, deadline: bigint) => Promise<bigint | null>;
-  submitReport: (bountyId: bigint) => Promise<bigint | null>;
-  resolveSubmission: (submissionId: bigint, outcome: number) => Promise<void>;
+  submitReport: (bountyId: bigint) => Promise<{ submissionId: bigint; txId: string } | null>;
+  resolveSubmission: (submissionId: bigint, outcome: number, payoutAmount?: bigint) => Promise<boolean>;
+  claimPayout: (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo) => Promise<boolean>;
   updateBounty: (id: bigint, amount: bigint, deadline: bigint) => Promise<boolean>;
-  payHacker: (recipient: string, amount: bigint) => Promise<string | null>;
   refreshBoard: () => Promise<BoardView | null>;
 }
 
@@ -370,6 +377,7 @@ export function useMidnight(): UseMidnightReturn {
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(loadWalletId);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
+  const [round, setRound] = useState<bigint | null>(null);
   const [boardStats, setBoardStats] = useState<BoardStats | null>(null);
   const [boardReady, setBoardReady] = useState(false);
   const [persona, setPersonaState] = useState<Persona | null>(loadPersona);
@@ -386,13 +394,10 @@ export function useMidnight(): UseMidnightReturn {
   const walletStateRef = useRef<WalletState>('detecting');
   const autoConnectAttemptedRef = useRef(false);
 
-  // Public demo identity secrets for the Anonity bounty board — fixed,
-  // shipped in the client, so any visitor can act as both an org and a
-  // hunter on the demo board.
   const fetchboardSecrets = (): { orgSecretKey: Uint8Array; hunterSecretKey: Uint8Array } => {
     return {
-      orgSecretKey: Uint8Array.from(Buffer.from('a1'.repeat(32), 'hex')),
-      hunterSecretKey: Uint8Array.from(Buffer.from('b2'.repeat(32), 'hex')),
+      orgSecretKey: getOrCreateOrgSecretKey(),
+      hunterSecretKey: getOrCreateHunterSecretKey(),
     };
   };
 
@@ -446,6 +451,7 @@ export function useMidnight(): UseMidnightReturn {
       if (cancelled || !s) return;
       setBounties(s.bounties);
       setSubmissions(s.submissions);
+      setRound(s.round);
       setBoardStats(s.stats);
     };
     void load();
@@ -500,6 +506,7 @@ export function useMidnight(): UseMidnightReturn {
         if (boardState) {
           setBounties(boardState.bounties);
           setSubmissions(boardState.submissions);
+          setRound(boardState.round);
           setBoardStats(boardState.stats);
         }
       } catch (e: any) {
@@ -553,6 +560,7 @@ export function useMidnight(): UseMidnightReturn {
     setBoardReady(false);
     setBounties([]);
     setSubmissions([]);
+    setRound(null);
     setBoardStats(null);
     setWalletState('ready');
   }, []);
@@ -574,6 +582,7 @@ export function useMidnight(): UseMidnightReturn {
     if (boardState) {
       setBounties(boardState.bounties);
       setSubmissions(boardState.submissions);
+      setRound(boardState.round);
       setBoardStats(boardState.stats);
     }
     return boardState;
@@ -581,13 +590,13 @@ export function useMidnight(): UseMidnightReturn {
 
   const runBoardCircuit = useCallback(
     async (
-      name: 'postBounty' | 'submitReport' | 'resolveSubmission' | 'updateBounty',
+      name: 'postBounty' | 'submitReport' | 'resolveSubmission' | 'updateBounty' | 'claimPayout',
       ...args: readonly unknown[]
-    ): Promise<boolean> => {
+    ): Promise<CircuitRunResult> => {
       const contract = boardContractRef.current;
       if (!contract) {
         setError('Anonity contract not loaded. Connect wallet first.');
-        return false;
+        return { ok: false, result: null, txId: null };
       }
       setLoading(true);
       setError(null);
@@ -595,19 +604,20 @@ export function useMidnight(): UseMidnightReturn {
       setLastCircuit(name);
       try {
         const finalized = await (contract.callTx as any)[name](...args);
-        const txId = finalized?.public?.txId;
+        const identifiers = typeof finalized?.identifiers === 'function' ? finalized.identifiers() : [];
+        const txId = String(finalized?.public?.txId ?? identifiers[0] ?? '');
         const block = finalized?.public?.blockHeight;
         setResult(`txId=${txId ?? ''}${block != null ? ` block=${block}` : ''}`);
         setLastTxId(txId ?? null);
         setLastBlock(block != null ? String(block) : null);
         await refreshBoard();
-        return true;
+        return { ok: true, result: (finalized as any)?.private?.result ?? null, txId: txId || null };
       } catch (e: any) {
         const msg = deepestErrorMessage(e);
         setError(`Circuit "${name}" failed: ${msg}`);
         setLastTxId(null);
         setLastBlock(null);
-        return false;
+        return { ok: false, result: null, txId: null };
       } finally {
         setLoading(false);
       }
@@ -617,64 +627,38 @@ export function useMidnight(): UseMidnightReturn {
 
   const postBounty = useCallback(
     async (amount: bigint, deadline: bigint): Promise<bigint | null> => {
-      const ok = await runBoardCircuit('postBounty', amount, deadline);
-      if (!ok) return null;
-      const board = await refreshBoard();
-      if (!board || board.bounties.length === 0) return null;
-      return board.bounties.reduce((max, b) => (b.id > max ? b.id : max), 0n);
+      const run = await runBoardCircuit('postBounty', amount, deadline);
+      if (!run.ok || typeof run.result !== 'bigint') return null;
+      return run.result;
     },
-    [runBoardCircuit, refreshBoard],
+    [runBoardCircuit],
   );
   const submitReport = useCallback(
-    async (bountyId: bigint): Promise<bigint | null> => {
-      const ok = await runBoardCircuit('submitReport', bountyId);
-      if (!ok) return null;
-      const board = await refreshBoard();
-      if (!board || board.submissions.length === 0) return null;
-      return board.submissions.reduce((max, s) => (s.id > max ? s.id : max), 0n);
+    async (bountyId: bigint): Promise<{ submissionId: bigint; txId: string } | null> => {
+      const feeCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, 5_000_000n));
+      const run = await runBoardCircuit('submitReport', bountyId, feeCoin);
+      if (!run.ok || typeof run.result !== 'bigint' || !run.txId) return null;
+      return { submissionId: run.result, txId: run.txId };
     },
-    [runBoardCircuit, refreshBoard],
+    [runBoardCircuit],
   );
   const resolveSubmission = useCallback(
-    (submissionId: bigint, outcome: number) =>
-      runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome)).then(() => undefined),
+    (submissionId: bigint, outcome: number, payoutAmount = 0n): Promise<boolean> => {
+      const payoutCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, payoutAmount));
+      return runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome), payoutCoin).then(({ ok }) => ok);
+    },
+    [runBoardCircuit],
+  );
+  const claimPayout = useCallback(
+    async (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo): Promise<boolean> =>
+      runBoardCircuit('claimPayout', submissionId, encodeQualifiedShieldedCoinInfo(payoutCoin)).then(({ ok }) => ok),
     [runBoardCircuit],
   );
   const updateBounty = useCallback(
     (id: bigint, amount: bigint, deadline: bigint) =>
-      runBoardCircuit('updateBounty', id, amount, deadline),
+      runBoardCircuit('updateBounty', id, amount, deadline).then(({ ok }) => ok),
     [runBoardCircuit],
   );
-  const payHacker = useCallback(async (recipient: string, amount: bigint): Promise<string | null> => {
-    const wallet = connectedAPIRef.current;
-    if (!wallet) {
-      setError('Connect the organization wallet before paying the hacker.');
-      return null;
-    }
-    if (!recipient.trim() || amount <= 0n) {
-      setError('A valid payout address and positive NIGHT amount are required.');
-      return null;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      await wallet.hintUsage(['makeTransfer', 'submitTransaction']);
-      const transfer = await wallet.makeTransfer([{
-        kind: 'unshielded',
-        type: unshieldedToken().raw,
-        value: amount,
-        recipient: recipient.trim(),
-      }]);
-      await wallet.submitTransaction(transfer.tx);
-      return `wallet-transfer-${Date.now()}`;
-    } catch (e: any) {
-      setError(`NIGHT payment failed: ${deepestErrorMessage(e)}`);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return {
     walletState,
     address,
@@ -692,6 +676,7 @@ export function useMidnight(): UseMidnightReturn {
     clearError,
     bounties,
     submissions,
+    round,
     boardStats,
     boardReady,
     persona,
@@ -699,8 +684,8 @@ export function useMidnight(): UseMidnightReturn {
     postBounty,
     submitReport,
     resolveSubmission,
+    claimPayout,
     updateBounty,
-    payHacker,
     refreshBoard,
   };
 }

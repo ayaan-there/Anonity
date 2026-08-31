@@ -60,9 +60,8 @@
         }
       ],
       "result-type": {
-        "type-name": "Tuple",
-        "types": [
-        ]
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
       }
     },
     {
@@ -109,12 +108,41 @@
             "type-name": "Uint",
             "maxval": 18446744073709551615
           }
+        },
+        {
+          "name": "feeCoin",
+          "type": {
+            "type-name": "Struct",
+            "name": "ShieldedCoinInfo",
+            "elements": [
+              {
+                "name": "nonce",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "color",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "value",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 340282366920938463463374607431768211455
+                }
+              }
+            ]
+          }
         }
       ],
       "result-type": {
-        "type-name": "Tuple",
-        "types": [
-        ]
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
       }
     },
     {
@@ -134,6 +162,92 @@
           "type": {
             "type-name": "Uint",
             "maxval": 255
+          }
+        },
+        {
+          "name": "payoutCoin",
+          "type": {
+            "type-name": "Struct",
+            "name": "ShieldedCoinInfo",
+            "elements": [
+              {
+                "name": "nonce",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "color",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "value",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 340282366920938463463374607431768211455
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "claimPayout",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "rawSubmissionId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "payoutCoin",
+          "type": {
+            "type-name": "Struct",
+            "name": "QualifiedShieldedCoinInfo",
+            "elements": [
+              {
+                "name": "nonce",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "color",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "value",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 340282366920938463463374607431768211455
+                }
+              },
+              {
+                "name": "mt_index",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 18446744073709551615
+                }
+              }
+            ]
           }
         }
       ],
@@ -348,40 +462,50 @@
                 "Slop"
               ]
             }
+          },
+          {
+            "name": "payoutAmount",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
           }
         ]
       }
     },
     {
-      "name": "nextBountyId",
+      "name": "claimed",
       "index": 2,
       "exported": true,
-      "storage": "Counter"
+      "storage": "Map",
+      "key": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      },
+      "value": {
+        "type-name": "Boolean"
+      }
     },
     {
-      "name": "nextSubmissionId",
+      "name": "nextBountyId",
       "index": 3,
       "exported": true,
       "storage": "Counter"
     },
     {
-      "name": "round",
+      "name": "nextSubmissionId",
       "index": 4,
       "exported": true,
       "storage": "Counter"
     },
     {
-      "name": "feeEscrowed",
+      "name": "round",
       "index": 5,
       "exported": true,
-      "storage": "Cell",
-      "type": {
-        "type-name": "Uint",
-        "maxval": 18446744073709551615
-      }
+      "storage": "Counter"
     },
     {
-      "name": "feesBurned",
+      "name": "feeEscrowed",
       "index": 6,
       "exported": true,
       "storage": "Cell",
@@ -391,7 +515,7 @@
       }
     },
     {
-      "name": "feesRefunded",
+      "name": "feesBurned",
       "index": 7,
       "exported": true,
       "storage": "Cell",
@@ -401,8 +525,18 @@
       }
     },
     {
-      "name": "totalPaid",
+      "name": "feesRefunded",
       "index": 8,
+      "exported": true,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    },
+    {
+      "name": "totalPaid",
+      "index": 9,
       "exported": true,
       "storage": "Cell",
       "type": {

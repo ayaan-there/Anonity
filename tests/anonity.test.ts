@@ -28,6 +28,8 @@ import {
     createConstructorContext,
     CostModel,
 } from '@midnight-ntwrk/compact-runtime';
+import { createShieldedCoinInfo, encodeQualifiedShieldedCoinInfo, encodeShieldedCoinInfo, nativeToken } from '@midnight-ntwrk/midnight-js-protocol/ledger';
+import { hunterCommitment } from '../src/lib/hunter-identity.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const managedDir = path.resolve(__dirname, '..', 'contracts', 'managed', 'anonity');
@@ -110,12 +112,24 @@ class VeilworkSimulator {
     }
 
     submitReport(bountyId: bigint) {
-        this.circuitContext = this.contract.impureCircuits.submitReport(this.circuitContext, bountyId).context;
+        const feeCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, 5_000_000n));
+        this.circuitContext = this.contract.impureCircuits.submitReport(this.circuitContext, bountyId, feeCoin).context;
         return this.getLedger();
     }
 
     resolve(submissionId: bigint, outcome: bigint) {
-        this.circuitContext = this.contract.impureCircuits.resolveSubmission(this.circuitContext, submissionId, outcome).context;
+        const payout = outcome === VALID ? 100n : 0n;
+        const payoutCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, payout));
+        this.circuitContext = this.contract.impureCircuits.resolveSubmission(this.circuitContext, submissionId, outcome, payoutCoin).context;
+        return this.getLedger();
+    }
+
+    claim(submissionId: bigint) {
+        const payoutCoin = encodeQualifiedShieldedCoinInfo({
+            ...createShieldedCoinInfo(nativeToken().raw, 100n),
+            mt_index: 0n,
+        });
+        this.circuitContext = this.contract.impureCircuits.claimPayout(this.circuitContext, submissionId, payoutCoin).context;
         return this.getLedger();
     }
 
@@ -207,12 +221,26 @@ describe('Anonity bounty core — circuit logic', () => {
         assert.ok(org.some((b) => b !== 0), 'org commitment must be non-zero');
     });
 
+    test('postBounty returns the exact allocated bounty id', () => {
+        const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
+        const call = sim.contract.impureCircuits.postBounty(sim.circuitContext, 100n, 7777n);
+        assert.equal(call.result, 1n);
+    });
+
     test('submitReport records a pending submission against the right bounty', () => {
         const sim = withOpenSubmission();
         const [bountyId, hunter, outcome] = sim.getSubmission(1n);
         assert.equal(bountyId, 1n);
         assert.equal(outcome, 0n, 'submission must start pending');
         assert.ok(hunter.some((b) => b !== 0), 'hunter commitment must be non-zero');
+    });
+
+    test('submitReport returns the exact allocated submission id', () => {
+        const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
+        sim.postBounty(100n, 7777n);
+        const feeCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, 5_000_000n));
+        const call = sim.contract.impureCircuits.submitReport(sim.circuitContext, 1n, feeCoin);
+        assert.equal(call.result, 1n);
     });
 
     test('valid resolution pays the bounty, refunds the fee, closes the bounty', () => {
@@ -306,7 +334,7 @@ describe('Anonity bounty core — state transitions', () => {
         assert.equal(escrow, 3n * FEE, 'all three fees remain in contract custody');
         assert.equal(burned, FEE);
         assert.equal(refunded, 2n * FEE);
-        assert.equal(paid, 50n);
+        assert.equal(paid, 100n, 'valid payout is the amount supplied during resolution');
     });
 });
 
@@ -319,6 +347,16 @@ describe('Anonity bounty core — privacy & authorisation', () => {
         assert.throws(
             () => sim.resolve(1n, VALID),
             (err: any) => err instanceof Error && /not the bounty org/.test(err.message),
+        );
+    });
+
+    test('only the hunter secret matching the submission commitment can claim', () => {
+        const sim = withOpenSubmission();
+        sim.resolve(1n, VALID);
+        sim.switchHunter(sk(0x99));
+        assert.throws(
+            () => sim.claim(1n),
+            (err: any) => err instanceof Error && /caller did not submit this report/.test(err.message),
         );
     });
 
@@ -335,6 +373,16 @@ describe('Anonity bounty core — privacy & authorisation', () => {
     test('commitments are deterministic for the same secret', () => {
         const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
         assert.deepEqual(sim.hunterKey(sk(0x22)), sim.hunterKey(sk(0x22)));
+    });
+
+    test('the browser commitment helper matches the Compact hunterKey circuit', () => {
+        const sim = new VeilworkSimulator(sk(0x11), sk(0x22));
+        assert.deepEqual(hunterCommitment(sk(0x22), sim.getLedger().round), sim.hunterKey(sk(0x22)));
+    });
+
+    test('the same hunter secret is unlinkable across commitment rounds', () => {
+        const hunter = sk(0x22);
+        assert.notDeepEqual(hunterCommitment(hunter, 1n), hunterCommitment(hunter, 2n));
     });
 
     test('raw secret keys never appear in stored commitments or ledger scalars', () => {

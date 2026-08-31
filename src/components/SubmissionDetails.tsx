@@ -1,16 +1,16 @@
 import React from 'react';
 import type { useMidnight } from '../hooks/useMidnight';
 import { navigate } from '../router';
-import { getReport, insertReportComment, listReportComments, markReportPaid, type ReportComment, type ReportContent } from '../lib/reports';
+import { getReport, insertReportComment, listReportComments, type ReportComment, type ReportContent } from '../lib/reports';
 import { isProgramOwner } from '../lib/programMeta';
-import { formatNightFromAtomic, parseNightToAtomic } from '../lib/night';
+import { parseNightToAtomic } from '../lib/night';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; id: bigint };
 
 const OUTCOME_LABEL = ['PENDING', 'VALID — PAID', 'DUPLICATE — REFUNDED', 'SLOP — FORFEITED'];
 
 const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
-  const { bounties, submissions, boardReady, persona, resolveSubmission, payHacker } = midnight;
+  const { bounties, submissions, boardReady, persona, resolveSubmission } = midnight;
   const submission = submissions.find((s) => s.id === id);
   const submissionBountyId = submission?.bountyId;
   const bounty = submission ? bounties.find((b) => b.id === submission.bountyId) : undefined;
@@ -21,9 +21,8 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
   const [commentBusy, setCommentBusy] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
-  const [payBusy, setPayBusy] = React.useState(false);
-  const [payNotice, setPayNotice] = React.useState<string | null>(null);
   const [payoutAmount, setPayoutAmount] = React.useState('');
+  const [actionNotice, setActionNotice] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -57,7 +56,7 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
   React.useEffect(() => {
     let cancelled = false;
     if (!isOwner) return () => { cancelled = true; };
-    void listReportComments(id).then((rows) => {
+    void listReportComments(id, 'org').then((rows) => {
       if (!cancelled) setComments(rows);
     });
     return () => { cancelled = true; };
@@ -87,35 +86,19 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
   }
 
   const resolve = async (outcome: number) => {
+    const payout = outcome === 1 ? parseNightToAtomic(payoutAmount) : 0n;
+    if (outcome === 1 && (!payout || payout <= 0n)) {
+      setActionNotice('ENTER THE NIGHT PAYOUT BEFORE MARKING THIS REPORT VALID.');
+      return;
+    }
     setBusy(true);
+    setActionNotice(null);
     try {
-      await resolveSubmission(id, outcome);
+      const ok = await resolveSubmission(id, outcome, payout ?? 0n);
+      if (ok) navigate('/dashboard');
     } finally {
       setBusy(false);
     }
-  };
-
-  const pay = async () => {
-    if (!report?.payoutAddress || report.paymentStatus === 'paid' || payBusy) return;
-    const atomicAmount = parseNightToAtomic(payoutAmount);
-    if (atomicAmount === null || atomicAmount <= 0n) {
-      setPayNotice('ENTER A VALID NIGHT AMOUNT, FOR EXAMPLE 0.0012.');
-      return;
-    }
-    setPayBusy(true);
-    setPayNotice(null);
-    const reference = await payHacker(report.payoutAddress, atomicAmount);
-    if (reference) {
-      const saved = await markReportPaid(id, atomicAmount, report.payoutAddress, reference);
-      if (saved) {
-        setReport({ ...report, paymentStatus: 'paid', paymentTxId: reference, paidAmount: Number(atomicAmount), paidAt: new Date().toISOString() });
-        setPayNotice(`PAID ${formatNightFromAtomic(atomicAmount)} NIGHT TO THE HUNTER.`);
-        navigate('/dashboard');
-      } else {
-        setPayNotice('WALLET TRANSFER SENT, BUT PAYMENT STATUS COULD NOT BE SAVED. VERIFY THE WALLET HISTORY.');
-      }
-    }
-    setPayBusy(false);
   };
 
   return (
@@ -149,22 +132,7 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
           )}
           <div style={{ borderTop: '1px solid var(--an-outline-variant)', paddingTop: 'var(--an-stack-sm)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span className="an-label an-secondary-text">PAYOUT</span>
-            {report.payoutAddress ? (
-              <>
-                <span className="an-dense" style={{ overflowWrap: 'anywhere' }}>{report.payoutAddress}</span>
-                {submission.outcome === 1 && report.paymentStatus !== 'paid' && (
-                  <>
-                    <label className="an-label an-secondary-text" htmlFor="payout-amount">PAYOUT AMOUNT (NIGHT)</label>
-                    <input id="payout-amount" className="an-input" inputMode="decimal" placeholder="e.g. 0.0012" value={payoutAmount} onChange={(event) => setPayoutAmount(event.target.value)} style={{ maxWidth: 240 }} />
-                    <button type="button" className="an-btn" onClick={() => void pay()} disabled={payBusy} style={{ width: 'auto', alignSelf: 'flex-start', marginTop: 4 }}>
-                      {payBusy ? 'AWAITING WALLET…' : 'PAY NIGHT'}
-                    </button>
-                  </>
-                )}
-                {report.paymentStatus === 'paid' && <span className="an-label an-accent-text">PAYMENT SENT · {formatNightFromAtomic(report.paidAmount)} NIGHT</span>}
-              </>
-            ) : <span className="an-label an-dim">NO PAYOUT ADDRESS PROVIDED.</span>}
-            {payNotice && <span className="an-label" style={{ color: payNotice.startsWith('PAID') ? 'var(--an-accent)' : 'var(--an-error)' }}>{payNotice}</span>}
+            <span className="an-dense an-dim">PAYOUTS MUST USE THE PROOF-GATED SHIELDED CLAIM FLOW. NO RECIPIENT ADDRESS IS STORED.</span>
           </div>
         </section>
       ) : (
@@ -187,10 +155,10 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
                 event.preventDefault();
                 if (!commentText.trim() || commentBusy) return;
                 setCommentBusy(true);
-                const ok = await insertReportComment(id, commentText);
+                const ok = await insertReportComment(id, commentText, 'org');
                 if (ok) {
                   setCommentText('');
-                  setComments(await listReportComments(id));
+                  setComments(await listReportComments(id, 'org'));
                 }
                 setCommentBusy(false);
               }}
@@ -209,12 +177,17 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
         <p className="an-label an-dim">CONNECT WALLET TO RESOLVE THIS REPORT.</p>
       )}
       {submission.outcome === 0 && boardReady && (
-        <div style={{ display: 'flex', gap: 'var(--an-unit)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-unit)', alignItems: 'flex-start' }}>
+          <label className="an-label an-secondary-text" htmlFor="payout-amount">VALID REPORT PAYOUT (NIGHT)</label>
+          <input id="payout-amount" className="an-input" inputMode="decimal" placeholder="0.0012" value={payoutAmount} onChange={(event) => setPayoutAmount(event.target.value)} style={{ maxWidth: 240 }} />
+          {actionNotice && <span className="an-label" style={{ color: 'var(--an-error)' }}>{actionNotice}</span>}
+          <div style={{ display: 'flex', gap: 'var(--an-unit)', flexWrap: 'wrap' }}>
           {[['VALID', 1], ['DUPLICATE', 2], ['SLOP', 3]].map(([label, outcome]) => (
             <button key={label as string} disabled={busy} onClick={() => void resolve(outcome as number)} className="an-label" style={{ padding: '8px 12px', background: 'transparent', border: '1px solid var(--an-outline-variant)', color: 'var(--an-primary)', cursor: busy ? 'wait' : 'pointer' }}>
-              RESOLVE {label as string}
+              {label === 'VALID' ? 'VALID + PAY NIGHT' : `RESOLVE ${label as string}`}
             </button>
           ))}
+          </div>
         </div>
       )}
 
