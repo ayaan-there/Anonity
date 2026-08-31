@@ -144,7 +144,7 @@ const App: React.FC = () => {
       </nav>
 
       {isTransparentDemoMode && (
-        <div style={{ padding: '10px var(--an-margin-safe)', background: '#5b160e', color: '#ffd9d2', textAlign: 'center', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: '0.04em' }}>
+        <div style={{ padding: '10px var(--an-margin-safe)', background: '#f5c542', color: '#111318', textAlign: 'center', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: '0.04em', fontWeight: 700 }}>
           TRANSPARENT DEMO MODE — STAKE AND PAYOUT FUNDING USE PUBLIC UNSHIELDED NIGHT. THIS IS NOT THE PRIVACY DEPLOYMENT.
         </div>
       )}

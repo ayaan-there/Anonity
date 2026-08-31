@@ -274,7 +274,7 @@ const initializeProviders = async (
   const shieldedAddresses = await connectedAPI.getShieldedAddresses();
 
   const zkConfigProvider = new FetchZkConfigProvider<string>(
-    window.location.origin,
+    isTransparentDemoMode ? `${window.location.origin}/demo` : window.location.origin,
     fetch.bind(window),
   );
 
@@ -492,7 +492,7 @@ export function useMidnight(): UseMidnightReturn {
 
       const boardAddress = getBoardContractAddress();
       if (!boardAddress) {
-        setError('No contract address configured. Set VITE_ANONITY_CONTRACT.');
+        setError(`No contract address configured. Set ${isTransparentDemoMode ? 'VITE_ANONITY_DEMO_CONTRACT' : 'VITE_ANONITY_CONTRACT'}.`);
         return;
       }
 
@@ -518,7 +518,7 @@ export function useMidnight(): UseMidnightReturn {
         const verifierMismatch = /undefined or have mismatched verifier keys/i.test(message);
         setError(
           verifierMismatch
-            ? 'This contract address points to an older Anonity deployment. Redeploy the updated contract with the current managed artifacts, then set VITE_ANONITY_CONTRACT to the new address.'
+            ? `The ${isTransparentDemoMode ? 'transparent demo' : 'privacy'} contract address does not match the bundled verifier keys. ${isTransparentDemoMode ? 'Set VITE_ANONITY_DEMO_CONTRACT to the current demo address and redeploy.' : 'Redeploy the updated contract and set VITE_ANONITY_CONTRACT to the new address.'}`
             : `Contract binding failed: ${message}`,
         );
         boardContractRef.current = null;

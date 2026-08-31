@@ -91,9 +91,13 @@ midnight-level-db/
 # Frontend build artifacts (copied from contracts/managed/counter/ during build)
 public/keys/
 public/zkir/
+public/demo/
 
 # Vercel CLI
 .vercel/
+
+# Supabase CLI temporary project metadata
+supabase/.temp/
 
 # Environment overrides
 .env.preprod
