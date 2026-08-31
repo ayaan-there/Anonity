@@ -21,6 +21,9 @@ export type ImpureCircuits<PS> = {
                     rawSubmissionId_0: bigint,
                     rawOutcome_0: bigint,
                     rawPayoutAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+  claimPayout(context: __compactRuntime.CircuitContext<PS>,
+              rawSubmissionId_0: bigint,
+              recipient_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
   getBounty(context: __compactRuntime.CircuitContext<PS>, rawId_0: bigint): __compactRuntime.CircuitResults<PS, [bigint,
                                                                                                                  bigint,
                                                                                                                  Uint8Array,
@@ -50,6 +53,9 @@ export type ProvableCircuits<PS> = {
                     rawSubmissionId_0: bigint,
                     rawOutcome_0: bigint,
                     rawPayoutAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+  claimPayout(context: __compactRuntime.CircuitContext<PS>,
+              rawSubmissionId_0: bigint,
+              recipient_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
   getBounty(context: __compactRuntime.CircuitContext<PS>, rawId_0: bigint): __compactRuntime.CircuitResults<PS, [bigint,
                                                                                                                  bigint,
                                                                                                                  Uint8Array,
@@ -82,6 +88,9 @@ export type Circuits<PS> = {
                     rawSubmissionId_0: bigint,
                     rawOutcome_0: bigint,
                     rawPayoutAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
+  claimPayout(context: __compactRuntime.CircuitContext<PS>,
+              rawSubmissionId_0: bigint,
+              recipient_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
   getBounty(context: __compactRuntime.CircuitContext<PS>, rawId_0: bigint): __compactRuntime.CircuitResults<PS, [bigint,
                                                                                                                  bigint,
                                                                                                                  Uint8Array,
@@ -125,6 +134,13 @@ export type Ledger = {
   readonly feesBurned: bigint;
   readonly feesRefunded: bigint;
   readonly totalPaid: bigint;
+  claimed: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(key_0: bigint): boolean;
+    lookup(key_0: bigint): boolean;
+    [Symbol.iterator](): Iterator<[bigint, boolean]>
+  };
 }
 
 export type ContractReferenceLocations = any;

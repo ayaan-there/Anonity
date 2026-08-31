@@ -12,6 +12,14 @@ A plain-English guide for using the Anonity bounty board on Midnight Preprod. No
 - **Preprod tNIGHT tokens** — testnet-only funds (never real money). If you use Lace and have no dust yet, generate DUST from Lace → Tokens before transacting.
 - That's it. **No hunter account, no email, no name** — your identity is a random secret key that never leaves your machine.
 
+## Getting Started on Preprod
+
+1. Open <https://an0n1ty.vercel.app/>.
+2. Confirm the wallet is set to Midnight Preprod.
+3. Connect Lace or 1AM and approve the request.
+4. Read the yellow banner before making a payment. The current recording link uses transparent demo funding; the privacy deployment uses shielded funding.
+5. Use only testnet funds and never paste a secret key or recovery phrase into the app or a support message.
+
 ---
 
 ## Step-by-Step Guide
@@ -51,6 +59,12 @@ The chain records that *a* qualified submission exists. It never learns who you 
 After submitting, open **INBOX** to see your report and any messages from the program's triage team. This inbox is filtered locally from public on-chain submissions using your secret-derived commitment; it does not query Supabase by account. The report writer accepts ciphertext only after its Edge Function verifies a finalized `submitReport` transaction. Report contents and messages are visible only to you and the organization that owns the program.
 
 The report is sealed in your browser twice: once to the program's public encryption key and once to a key derived from your local hunter secret. Supabase stores ciphertext only.
+
+## Your First Transaction
+
+For the current recording demo, the first transaction is a transparent unshielded NIGHT transaction. The wallet address and amount can be visible on-chain, so do not describe this flow as anonymous payment. The encrypted report body still leaves the browser only as ciphertext.
+
+For the privacy deployment, use the shielded contract with a wallet that has shielded NIGHT and the required DUST. Confirm the yellow demo banner is absent before presenting that flow as the privacy path.
 
 ### 6. Resolve submissions (organizations)
 

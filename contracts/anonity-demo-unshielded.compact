@@ -35,6 +35,7 @@ export ledger feeEscrowed: Uint<64>;
 export ledger feesBurned: Uint<64>;
 export ledger feesRefunded: Uint<64>;
 export ledger totalPaid: Uint<64>;
+export ledger claimed: Map<Uint<64>, Boolean>;
 
 constructor() {
     round.increment(1);
@@ -129,7 +130,10 @@ export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>,
     } else { if (outcome == 3 as Uint<8>) {
         feesBurned = disclose((feesBurned + 5) as Uint<64>);
     } else {
-        assert(payoutAmount > 0, "resolve: valid payout must be positive");
+        // Demo QA guardrail: keep synthetic payouts within the faucet-funded
+        // test budget (50..3000 NIGHT).
+        assert(payoutAmount >= 50000000 as Uint<64>, "resolve: payout must be at least 50 NIGHT");
+        assert(payoutAmount <= 3000000000 as Uint<64>, "resolve: payout must be at most 3000 NIGHT");
         receiveUnshielded(nativeToken(), payoutAmount as Uint<128>);
         feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
         totalPaid = disclose((totalPaid + payoutAmount) as Uint<64>);
@@ -154,6 +158,25 @@ export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>,
             payoutAmount: outcome == 1 as Uint<8> ? payoutAmount : 0 as Uint<64>,
         }),
     );
+}
+
+// Transparent demo payout claim. The hunter proves possession of the same
+// local secret used for the submission commitment, then chooses the public
+// unshielded recipient address for this demo wallet. This is intentionally
+// visible on-chain and is not the privacy deployment.
+export circuit claimPayout(rawSubmissionId: Uint<64>, recipient: UserAddress): [] {
+    const submissionId = disclose(rawSubmissionId);
+    assert(submissions.member(submissionId), "claim: no such submission");
+    const sub = submissions.lookup(submissionId);
+    assert(sub.outcome == Outcome.Valid, "claim: submission is not payable");
+    assert(!claimed.member(submissionId) || !claimed.lookup(submissionId), "claim: payout already claimed");
+    assert(sub.hunter == hunterKey(hunterSecretKey()), "claim: caller did not submit this report");
+    sendUnshielded(
+        nativeToken(),
+        sub.payoutAmount as Uint<128>,
+        right<ContractAddress, UserAddress>(disclose(recipient)),
+    );
+    claimed.insert(disclose(submissionId), disclose(true));
 }
 
 export circuit getBounty(rawId: Uint<64>): [Uint<64>, Uint<64>, Bytes<32>, Uint<8>] {

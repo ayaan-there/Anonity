@@ -18,7 +18,8 @@ Connect your wallet and use the Anonity bounty board live on Preprod.
 
 | Network  | Address                                                                 |
 |----------|-------------------------------------------------------------------------|
-| Preprod (Anonity bounty core) | `4f8c327a9c86de19c64b8b09b81855d1c57670a774af769bd890cd110c2bff37` |
+| Preprod (Anonity shielded bounty core) | `5f5cc5813ecfb6cbd2b36466931c4cf337271eb22827667fe28e6cb5270d96d9` |
+| Preprod (recording-only transparent demo) | `aa13d75c72f51bb87fa9af3f5e510da302e50d3f97bde33679879d2478130ad4` |
 | Preprod (counter, L2 demo)     | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` |
 | Preview (counter, L1)          | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` |
 
@@ -29,6 +30,8 @@ Connect your wallet and use the Anonity bounty board live on Preprod.
 Bug bounty platforms have an identity problem. Security researchers must disclose who they are to get paid, which exposes them to retaliation, doxxing, and legal risk. Organizations can't verify that reports come from distinct, serious researchers rather than one spammer with ten email addresses. And everyone pays middleman fees for trust that cryptography could provide directly.
 
 **Anonity** fixes both sides. Organizations post bounties; researchers submit vulnerability reports anonymously; every submission carries a 5 NIGHT anti-spam fee received as a shielded contract output. Report content and triage messages are sealed in the browser for the organization and the hunter separately. Payment rights are proof-gated, not account-gated.
+
+The current public recording link is configured for the separately deployed transparent demo contract because many test wallets do not have shielded NIGHT. The yellow banner is intentional: that deployment is useful for demonstrating the product flow, but it is not the privacy-preserving deployment described above.
 
 This repo ships the privacy core of **Anonity**: the bounty contract (`contracts/anonity.compact`) with program posting, anonymous submission with shielded fee escrow, org-only resolution across three outcomes, and a proof-gated shielded payout claim circuit — plus a React frontend wired to Preprod. The configured Supabase project has the private-report schema applied. The final qualified-coin handoff for claim UX, updated-contract redeployment, and end-to-end wallet/privacy tests are still required before this is presented as production-ready.
 
@@ -88,6 +91,7 @@ npm install
 # 3. Recompile contracts (optional — artifacts are committed)
 npm run compile
 npm run compile:anonity
+npm run compile:anonity-demo
 
 # 4. Start the local proof server (only needed for Lace wallet)
 npm run proof-server:start
@@ -181,3 +185,44 @@ See [docs/USAGE.md](docs/USAGE.md) for a plain-English walkthrough: posting boun
 ## Product X Profile
 
 [@ANONITYik9o](https://x.com/ANONITYik9o)
+
+---
+
+## Level 5 — User Validation
+
+- Target: 50 consented Preprod testers
+- Current: 0 / 50
+- See [USERS.md](USERS.md) for the privacy-safe tester ledger.
+- See [docs/FEEDBACK.md](docs/FEEDBACK.md) for the feedback log and changes.
+
+Full wallet addresses are never committed to this public repository. Verification, where necessary, must happen privately and with explicit consent.
+
+## Level 6 — Mainnet Readiness
+
+The repository is prepared for the Level 6 workflow, but it is not claiming mainnet launch yet. The remaining launch gates are:
+
+- complete real-user validation and document consented feedback;
+- implement and verify the planned onboarding improvements;
+- redeploy the finalized shielded contract and replace the provisional shielded address in the deployment configuration;
+- complete end-to-end wallet, encryption, payout, and privacy review on the finalized deployment;
+- complete security, operational, and mainnet readiness review.
+
+See [LAUNCH_USERS.md](LAUNCH_USERS.md), [docs/BRAND_BRIEF.md](docs/BRAND_BRIEF.md), and [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
+For local load testing only, `npm run test-identities:generate` creates 70 unfunded synthetic Preprod-format identities in the ignored `local-test-identities/` directory. These are test fixtures, not users, and are intentionally excluded from the Level 5/6 tester counts.
+
+## Feedback & Iterations
+
+See [docs/FEEDBACK.md](docs/FEEDBACK.md). Current documented changes address wallet funding confusion, explicit transparent-demo disclosure, and matching frontend verifier assets.
+
+## Level 6 Users
+
+See [LAUNCH_USERS.md](LAUNCH_USERS.md). Target: 20 consented launch testers; current count: 0 / 20.
+
+## Product X Profile
+
+[@ANONITYik9o](https://x.com/ANONITYik9o)
+
+## Brand Assets
+
+See [docs/BRAND_BRIEF.md](docs/BRAND_BRIEF.md). Final logo and banner links will be added after they are created.

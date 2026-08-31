@@ -17,7 +17,7 @@ const parseNonce = (value: string): string | null => {
 };
 
 const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
-  const { submissions, round, persona, boardReady } = midnight;
+  const { submissions, round, persona, boardReady, address } = midnight;
   const [ownedProgramIds, setOwnedProgramIds] = React.useState<Set<bigint> | null>(null);
   const [reports, setReports] = React.useState<ReportContent[]>([]);
   const [comments, setComments] = React.useState<Map<number, ReportComment[]>>(new Map());
@@ -125,6 +125,21 @@ const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
   const claim = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedReport || !selectedSubmission || selectedSubmission.outcome !== 1 || claimBusy) return;
+    if (isTransparentDemoMode) {
+      if (!address) {
+        setClaimNotice('CONNECT THE HUNTER WALLET BEFORE CLAIMING THE TRANSPARENT DEMO PAYOUT.');
+        return;
+      }
+      setClaimBusy(true);
+      setClaimNotice(null);
+      try {
+        const ok = await midnight.claimPayout(BigInt(selectedReport.submissionId), address);
+        setClaimNotice(ok ? 'PAYOUT CLAIM SUBMITTED TO YOUR CONNECTED UNSHIELDED WALLET.' : 'PAYOUT CLAIM FAILED. CHECK THE WALLET BALANCE AND TRY AGAIN.');
+      } finally {
+        setClaimBusy(false);
+      }
+      return;
+    }
     const nonce = parseNonce(payoutNonce);
     if (!nonce || !/^\d+$/.test(payoutMtIndex.trim())) {
       setClaimNotice('ENTER THE 32-BYTE COIN NONCE AND ITS MERKLE-TREE INDEX.');
@@ -186,6 +201,15 @@ const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
               {selectedSubmission?.outcome === 1 ? (
                 <p className="an-label an-accent-text">VALID REPORT · {isTransparentDemoMode ? 'TRANSPARENT DEMO PAYOUT FUNDED BY PROGRAM OWNER' : 'SHIELDED PAYOUT FUNDED BY PROGRAM OWNER'}</p>
               ) : <p className="an-label an-dim">TRIAGE STATUS IS RECORDED ON CHAIN.</p>}
+              {isTransparentDemoMode && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
+                <form onSubmit={(event) => void claim(event)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-unit)', paddingTop: 'var(--an-stack-sm)', borderTop: '1px solid var(--an-outline-variant)' }}>
+                  <span className="an-label an-secondary-text">CLAIM TRANSPARENT DEMO PAYOUT</span>
+                  <span className="an-label an-dim">PAYOUT: {selectedSubmission.payoutAmount.toString()} ATOMIC NIGHT · CLAIMS TO THE CONNECTED UNSHIELDED WALLET.</span>
+                  <span className="an-label an-dim">This demo claim is public on-chain. It proves the local hunter identity but does not provide privacy.</span>
+                  {claimNotice && <span className="an-label" style={{ color: claimNotice.startsWith('PAYOUT CLAIM SUBMITTED') ? 'var(--an-accent)' : 'var(--an-error)' }}>{claimNotice}</span>}
+                  <button type="submit" className="an-btn" disabled={claimBusy || !address} style={{ width: 'auto', alignSelf: 'flex-start' }}>{claimBusy ? 'CLAIMING…' : address ? 'CLAIM PAYOUT' : 'CONNECT WALLET TO CLAIM'}</button>
+                </form>
+              )}
               {!isTransparentDemoMode && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
                 <form onSubmit={(event) => void claim(event)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-unit)', paddingTop: 'var(--an-stack-sm)', borderTop: '1px solid var(--an-outline-variant)' }}>
                   <span className="an-label an-secondary-text">CLAIM SHIELDED PAYOUT</span>

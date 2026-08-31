@@ -107,6 +107,7 @@ supabase/.temp/
 # Local context files (never tracked)
 AGENTS.md
 PRD.md
+local-test-identities/
 
 # Helper shell scripts (dev-only, not for submission)
 *.sh
@@ -118,3 +119,5 @@ design-reference/
 .skills/
 .agents/
 skills-lock.json
+
+.vercel

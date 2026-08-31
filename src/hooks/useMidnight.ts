@@ -7,7 +7,7 @@ import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-conf
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import type { ProofProvider, UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import { toHex, fromHex } from '@midnight-ntwrk/midnight-js-utils';
-import { Binding, CostModel, Proof, SignatureEnabled, Transaction, createShieldedCoinInfo, encodeQualifiedShieldedCoinInfo, encodeShieldedCoinInfo, nativeToken, type FinalizedTransaction, type QualifiedShieldedCoinInfo, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
+import { Binding, CostModel, Proof, SignatureEnabled, Transaction, createShieldedCoinInfo, encodeQualifiedShieldedCoinInfo, encodeShieldedCoinInfo, encodeUserAddress, nativeToken, type FinalizedTransaction, type QualifiedShieldedCoinInfo, type TransactionId } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import type { InitialAPI, ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
 import semver from 'semver';
 import { firstValueFrom, interval, map, filter, take, timeout, concatMap, catchError, throwError } from 'rxjs';
@@ -369,7 +369,7 @@ export interface UseMidnightReturn {
   postBounty: (amount: bigint, deadline: bigint) => Promise<bigint | null>;
   submitReport: (bountyId: bigint) => Promise<{ submissionId: bigint; txId: string } | null>;
   resolveSubmission: (submissionId: bigint, outcome: number, payoutAmount?: bigint) => Promise<boolean>;
-  claimPayout: (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo) => Promise<boolean>;
+  claimPayout: (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo | string) => Promise<boolean>;
   updateBounty: (id: bigint, amount: bigint, deadline: bigint) => Promise<boolean>;
   refreshBoard: () => Promise<BoardView | null>;
 }
@@ -662,8 +662,14 @@ export function useMidnight(): UseMidnightReturn {
     [runBoardCircuit],
   );
   const claimPayout = useCallback(
-    async (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo): Promise<boolean> =>
-      runBoardCircuit('claimPayout', submissionId, encodeQualifiedShieldedCoinInfo(payoutCoin)).then(({ ok }) => ok),
+    async (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo | string): Promise<boolean> => {
+      if (isTransparentDemoMode) {
+        if (typeof payoutCoin !== 'string') return false;
+        return runBoardCircuit('claimPayout', submissionId, { bytes: encodeUserAddress(payoutCoin) }).then(({ ok }) => ok);
+      }
+      if (typeof payoutCoin === 'string') return false;
+      return runBoardCircuit('claimPayout', submissionId, encodeQualifiedShieldedCoinInfo(payoutCoin)).then(({ ok }) => ok);
+    },
     [runBoardCircuit],
   );
   const updateBounty = useCallback(
