@@ -20,6 +20,12 @@ import {
   AnonityModule,
   type AnonityPrivateState,
 } from '../lib/anonity-contract';
+import {
+  compiledAnonityDemoContract,
+  ANONITY_DEMO_PRIVATE_STATE_ID,
+  AnonityModule as AnonityDemoModule,
+} from '../lib/anonity-demo-contract';
+import { getBoardContractAddress, isTransparentDemoMode } from '../lib/deployment-mode';
 import { getOrCreateHunterSecretKey, getOrCreateOrgSecretKey } from '../lib/hunter-identity';
 
 export type BountyRow = {
@@ -106,7 +112,7 @@ const fetchBoardState = async (contractAddress: string): Promise<BoardView | nul
     const stateHex = gql?.data?.contractAction?.state;
     if (!stateHex) return null;
     const contractState = CompactContractState.deserialize(hexToBytes(stateHex));
-    const l = AnonityModule.ledger(contractState.data);
+    const l = boardModule.ledger(contractState.data);
 
     const bounties: BountyRow[] = [];
     for (const [id, b] of l.bounties) {
@@ -163,11 +169,9 @@ const getNetworkId = (): string => {
   return (v && v.trim()) || 'preview';
 };
 
-const getBoardContractAddress = (): string | null => {
-  const v = import.meta.env.VITE_ANONITY_CONTRACT as string | undefined;
-  if (!v || !v.trim() || /^PLACEHOLDER/i.test(v)) return null;
-  return v.trim();
-};
+const boardModule = isTransparentDemoMode ? AnonityDemoModule : AnonityModule;
+const boardCompiledContract = isTransparentDemoMode ? compiledAnonityDemoContract : compiledAnonityContract;
+const boardPrivateStateId = isTransparentDemoMode ? ANONITY_DEMO_PRIVATE_STATE_ID : ANONITY_PRIVATE_STATE_ID;
 
 type CompatibleWallet = { id: string; api: InitialAPI };
 
@@ -495,8 +499,8 @@ export function useMidnight(): UseMidnightReturn {
       try {
         const boardSecrets = fetchboardSecrets();
         const boardFound = await findDeployedContract(providers as any, {
-          compiledContract: compiledAnonityContract as any,
-          privateStateId: ANONITY_PRIVATE_STATE_ID,
+          compiledContract: boardCompiledContract as any,
+          privateStateId: boardPrivateStateId,
           contractAddress: boardAddress,
           initialPrivateState: boardSecrets as any,
         });
@@ -635,6 +639,11 @@ export function useMidnight(): UseMidnightReturn {
   );
   const submitReport = useCallback(
     async (bountyId: bigint): Promise<{ submissionId: bigint; txId: string } | null> => {
+      if (isTransparentDemoMode) {
+        const run = await runBoardCircuit('submitReport', bountyId);
+        if (!run.ok || typeof run.result !== 'bigint' || !run.txId) return null;
+        return { submissionId: run.result, txId: run.txId };
+      }
       const feeCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, 5_000_000n));
       const run = await runBoardCircuit('submitReport', bountyId, feeCoin);
       if (!run.ok || typeof run.result !== 'bigint' || !run.txId) return null;
@@ -644,6 +653,9 @@ export function useMidnight(): UseMidnightReturn {
   );
   const resolveSubmission = useCallback(
     (submissionId: bigint, outcome: number, payoutAmount = 0n): Promise<boolean> => {
+      if (isTransparentDemoMode) {
+        return runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome), payoutAmount).then(({ ok }) => ok);
+      }
       const payoutCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, payoutAmount));
       return runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome), payoutCoin).then(({ ok }) => ok);
     },

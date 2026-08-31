@@ -35,6 +35,15 @@ contracts/managed/anonity/*
 !contracts/managed/anonity/contract/
 !contracts/managed/anonity/compiler/
 
+# Transparent demo compiled artifacts — required by the Vercel build when
+# VITE_PAYMENT_MODE=unshielded-demo.
+!contracts/managed/anonity-demo-unshielded/
+contracts/managed/anonity-demo-unshielded/*
+!contracts/managed/anonity-demo-unshielded/keys/
+!contracts/managed/anonity-demo-unshielded/zkir/
+!contracts/managed/anonity-demo-unshielded/contract/
+!contracts/managed/anonity-demo-unshielded/compiler/
+
 # Deployment info
 deployment.json
 

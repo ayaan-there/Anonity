@@ -3,6 +3,7 @@ import type { useMidnight } from '../hooks/useMidnight';
 import { getProgramMeta } from '../lib/programMeta';
 import { insertReport } from '../lib/reports';
 import { getOrCreateHunterSecretKey } from '../lib/hunter-identity';
+import { isTransparentDemoMode } from '../lib/deployment-mode';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; bountyId: bigint | null };
 
@@ -173,9 +174,9 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
   if (done) {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center', padding: 'var(--an-stack-lg) 0' }}>
-        <p className="an-punchline an-accent-text">REPORT SUBMITTED ANONYMOUSLY.</p>
+        <p className="an-punchline an-accent-text">REPORT SUBMITTED {isTransparentDemoMode ? 'IN DEMO MODE' : 'ANONYMOUSLY'}.</p>
         <p className="an-label an-dim" style={{ marginTop: 'var(--an-gutter)' }}>
-          THE CHAIN RECORDED ONLY PROOF-OF-SUBMISSION. YOUR WRITE-UP WENT TO THE ORG — NEVER TO THE LEDGER.
+          {isTransparentDemoMode ? 'DEMO ONLY: THE 5 NIGHT PAYMENT WAS TRANSPARENT. YOUR WRITE-UP WENT TO THE ORG — NEVER TO THE LEDGER.' : 'THE CHAIN RECORDED ONLY PROOF-OF-SUBMISSION. YOUR WRITE-UP WENT TO THE ORG — NEVER TO THE LEDGER.'}
         </p>
         <a href="#/programs" className="an-btn" style={{ width: 'auto', marginTop: 'var(--an-stack-md)' }}>
           BACK TO PROGRAMS
@@ -208,13 +209,12 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
           </span>
         </span>
         <span className="an-dense an-dim" style={{ textTransform: 'uppercase' }}>
-          ANONYMOUS · FEE ESCROW
+          ANONYMOUS · {isTransparentDemoMode ? 'TRANSPARENT DEMO FEE' : 'FEE ESCROW'}
         </span>
       </div>
 
       <div className="an-brutal an-dense an-secondary-text" style={{ padding: 'var(--an-stack-sm)', background: 'var(--an-surface-low)' }}>
-        The chain sees a proof — never your name, wallet, or write-up. Your report content below is
-        delivered to the org off-chain only. If you haven't yet, review the program's scope, policy,
+        The chain sees a proof — never your name or write-up. {isTransparentDemoMode ? 'DEMO WARNING: the 5 NIGHT fee uses a transparent wallet payment.' : 'Your report content below is delivered to the org off-chain only.'} If you haven't yet, review the program's scope, policy,
         and exclusions on its page first.
       </div>
 
@@ -354,7 +354,7 @@ const SubmitReport: React.FC<Props> = ({ midnight, bountyId }) => {
                   AUTO SEVERITY: {detectedSeverity}
                 </span>
               )}
-              <span className="an-label an-dim">5 NIGHT ANTI-SPAM FEE → CONTRACT ESCROW. WALLET BALANCE + DUST REQUIRED.</span>
+              <span className="an-label an-dim">5 NIGHT ANTI-SPAM FEE → {isTransparentDemoMode ? 'TRANSPARENT CONTRACT ESCROW' : 'SHIELDED CONTRACT ESCROW'}. WALLET BALANCE + DUST REQUIRED.</span>
               {(error || formError) && <span className="an-dense" style={{ color: 'var(--an-error)' }}>{error || formError}</span>}
             </div>
             <button type="submit" disabled={busy || !valid} className="an-btn" style={{ width: 'auto', padding: '12px 24px' }}>

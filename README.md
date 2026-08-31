@@ -115,6 +115,25 @@ The function uses the public Midnight indexer to verify a finalized `submitRepor
 
 Deployment state and wallet seeds stay in the ignored `.midnight-state.json` file. Never commit that file or paste its contents into documentation, issues, or logs.
 
+### Recording-only transparent demo
+
+For a temporary recording when the wallet has no shielded NIGHT, deploy the isolated transparent contract:
+
+```bash
+npm run deploy:anonity-demo
+```
+
+Set these Vercel build-time variables for the recording deployment:
+
+```text
+VITE_PAYMENT_MODE=unshielded-demo
+VITE_ANONITY_DEMO_CONTRACT=<printed-demo-address>
+```
+
+Keep `VITE_ANONITY_CONTRACT` set to the normal shielded contract. The demo contract uses transparent unshielded NIGHT for the 5 NIGHT submission fee and valid payout; this mode is not privacy-preserving and must not be presented as the production privacy deployment. Set `VITE_PAYMENT_MODE` back to `shielded` (or remove it) when recording is complete.
+
+The `store-report` Edge Function must also be redeployed with `ANONITY_DEMO_CONTRACT_ADDRESS` set to the demo address. It accepts only the configured shielded and demo contract addresses while keeping report content encrypted.
+
 ---
 
 ## Run Tests

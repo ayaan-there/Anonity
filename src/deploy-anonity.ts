@@ -7,6 +7,7 @@
  * circuit calls re-derive the same identity commitments.
  *
  * Usage: npx tsx src/deploy-anonity.ts --network preprod
+ * Demo-only transparent variant: npx tsx src/deploy-anonity.ts --network preprod --demo-unshielded
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -27,7 +28,10 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 // @ts-expect-error Required for wallet sync
 globalThis.WebSocket = WebSocket;
 
-const PRIVATE_STATE_ID = 'AnonityPrivateState';
+const DEMO_UNSHIELDED = process.argv.includes('--demo-unshielded');
+const CONTRACT_SLUG = DEMO_UNSHIELDED ? 'anonity-demo-unshielded' : 'anonity';
+const PRIVATE_STATE_ID = DEMO_UNSHIELDED ? 'AnonityDemoUnshieldedPrivateState' : 'AnonityPrivateState';
+const DEPLOYMENT_STATE_KEY = DEMO_UNSHIELDED ? 'anonityDemoUnshieldedDeployment' : 'anonityDeployment';
 const __dirname_file = path.dirname(fileURLToPath(import.meta.url));
 const STATE_FILE = path.resolve(__dirname_file, '..', '.midnight-state.json');
 
@@ -36,11 +40,11 @@ const SEED = getOrCreateSeed(network);
 
 // ─── Compiled anonity contract loading ────────────────────────────────
 
-const zkConfigPath = path.resolve(__dirname_file, '..', 'contracts', 'managed', 'anonity');
+const zkConfigPath = path.resolve(__dirname_file, '..', 'contracts', 'managed', CONTRACT_SLUG);
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
 if (!fs.existsSync(contractPath)) {
-  console.error('\n❌ anonity contract not compiled! Run: npm run compile:anonity\n');
+  console.error(`\n❌ ${CONTRACT_SLUG} contract not compiled! Run: ${DEMO_UNSHIELDED ? 'npm run compile:anonity-demo' : 'npm run compile:anonity'}\n`);
   process.exit(1);
 }
 
@@ -57,7 +61,7 @@ const witnesses = {
   },
 };
 
-const compiledContract = CompiledContract.make('anonity', AnonityModule.Contract).pipe(
+const compiledContract = CompiledContract.make(CONTRACT_SLUG, AnonityModule.Contract).pipe(
   CompiledContract.withWitnesses(witnesses as never),
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
@@ -83,7 +87,7 @@ const randomSecret = (): Uint8Array => {
 
 function getOrCreateSecrets(): { orgSecret: Uint8Array; hunterSecret: Uint8Array } {
   const state = loadStateFile();
-  const vw = (state as any).anonityDeployment;
+  const vw = (state as any)[DEPLOYMENT_STATE_KEY];
   if (vw?.orgSecret && vw?.hunterSecret) {
     console.log('  Reusing existing org/hunter secrets from .midnight-state.json');
     return {
@@ -93,8 +97,8 @@ function getOrCreateSecrets(): { orgSecret: Uint8Array; hunterSecret: Uint8Array
   }
   const orgSecret = randomSecret();
   const hunterSecret = randomSecret();
-  (state as any).anonityDeployment = {
-    ...(state as any).anonityDeployment,
+  (state as any)[DEPLOYMENT_STATE_KEY] = {
+    ...(state as any)[DEPLOYMENT_STATE_KEY],
     orgSecret: Buffer.from(orgSecret).toString('hex'),
     hunterSecret: Buffer.from(hunterSecret).toString('hex'),
   };
@@ -127,7 +131,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'anonity-state',
+      privateStateStoreName: DEMO_UNSHIELDED ? 'anonity-demo-unshielded-state' : 'anonity-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -208,7 +212,7 @@ async function main() {
   await new Promise((r) => setTimeout(r, 6000));
   process.stdout.write(' done.\n');
 
-  console.log('  Deploying anonity contract...\n');
+  console.log(`  Deploying ${CONTRACT_SLUG} contract...\n`);
 
   const MAX_RETRIES = 20;
   const RETRY_DELAY_MS = 5000;
@@ -257,22 +261,22 @@ async function main() {
   if (!deployed) throw new Error('Deployment failed after all retries');
 
   const contractAddress = deployed.deployTxData.public.contractAddress;
-  console.log('  ✅ Anonity contract deployed successfully!\n');
+  console.log(`  ✅ ${CONTRACT_SLUG} contract deployed successfully!\n`);
   console.log(`  Contract Address: ${contractAddress}\n`);
 
   const state2 = loadStateFile();
-  (state2 as any).anonityDeployment = {
-    ...(state2 as any).anonityDeployment,
+  (state2 as any)[DEPLOYMENT_STATE_KEY] = {
+    ...(state2 as any)[DEPLOYMENT_STATE_KEY],
     address: contractAddress,
     deployer: address.toString(),
     deployedAt: new Date().toISOString(),
   };
   saveStateFile(state2);
-  console.log('  Saved to .midnight-state.json under [anonityDeployment]\n');
+  console.log(`  Saved to .midnight-state.json under [${DEPLOYMENT_STATE_KEY}]\n`);
 
   await persistWalletState(network, walletCtx);
   await walletCtx.wallet.stop();
-  console.log('─── Anonity deployment complete ─────────────────────────────────\n');
+  console.log(`─── ${CONTRACT_SLUG} deployment complete ────────────────────────────────\n`);
 }
 
 main().catch((err) => {

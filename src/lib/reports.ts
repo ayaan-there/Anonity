@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getProgramMeta } from './programMeta';
 import { ensureOrgEncryptionKeyPair, hunterEncryptionKeyPair, isReportEnvelope, openJson, sealJson, type ReportEnvelope } from './report-crypto';
+import { getBoardContractAddress } from './deployment-mode';
 
 export type PublicSubmission = {
   id: bigint;
@@ -107,6 +108,7 @@ export async function insertReport(submissionId: bigint, txId: string, draft: Re
         submission_id: Number(submissionId),
         bounty_id: Number(draft.bountyId),
         tx_id: txId,
+        contract_address: getBoardContractAddress(),
         org_ciphertext: JSON.stringify(orgEnvelope),
         hunter_ciphertext: JSON.stringify(hunterEnvelope),
         hunter_encryption_public_key: hunterKeys.publicKey,

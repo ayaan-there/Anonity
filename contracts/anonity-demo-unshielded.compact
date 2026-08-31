@@ -1,0 +1,177 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// TRANSPARENT DEMO CONTRACT — DO NOT PRESENT THIS AS PRIVACY-PRESERVING.
+//
+// This deployment exists only for recordings when a browser wallet cannot
+// supply shielded NIGHT. The hunter commitment and encrypted report flow are
+// retained, but the 5 NIGHT stake and valid-report funding use transparent
+// NIGHT. A chain observer can therefore see the funding wallet and amount.
+
+enum BountyStatus { Open, Closed };
+enum Outcome { Pending, Valid, Duplicate, Slop };
+
+struct Bounty {
+    amount: Uint<64>,
+    deadline: Uint<64>,
+    org: Bytes<32>,
+    status: BountyStatus,
+}
+
+struct Submission {
+    bountyId: Uint<64>,
+    hunter: Bytes<32>,
+    outcome: Outcome,
+    payoutAmount: Uint<64>,
+}
+
+export ledger bounties: Map<Uint<64>, Bounty>;
+export ledger submissions: Map<Uint<64>, Submission>;
+export ledger nextBountyId: Counter;
+export ledger nextSubmissionId: Counter;
+export ledger round: Counter;
+export ledger feeEscrowed: Uint<64>;
+export ledger feesBurned: Uint<64>;
+export ledger feesRefunded: Uint<64>;
+export ledger totalPaid: Uint<64>;
+
+constructor() {
+    round.increment(1);
+    nextBountyId.increment(1);
+    nextSubmissionId.increment(1);
+}
+
+witness orgSecretKey(): Bytes<32>;
+witness hunterSecretKey(): Bytes<32>;
+
+export circuit orgKey(sk: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>(
+        [pad(32, "veilwork:org:"), round as Bytes<32>, sk]);
+}
+
+export circuit hunterKey(sk: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>(
+        [pad(32, "veilwork:hunter:"), round as Bytes<32>, sk]);
+}
+
+export circuit postBounty(amount: Uint<64>, deadline: Uint<64>): Uint<64> {
+    assert(amount > 0, "postBounty: amount must be positive");
+    const id = nextBountyId;
+    const org = orgKey(orgSecretKey());
+    bounties.insert(
+        disclose(id),
+        disclose(Bounty {
+            amount: disclose(amount),
+            deadline: disclose(deadline),
+            org: disclose(org),
+            status: BountyStatus.Open,
+        }),
+    );
+    nextBountyId.increment(1);
+    return id;
+}
+
+export circuit updateBounty(rawId: Uint<64>, rawAmount: Uint<64>, rawDeadline: Uint<64>): [] {
+    const id = disclose(rawId);
+    const amount = disclose(rawAmount);
+    const deadline = disclose(rawDeadline);
+    assert(amount > 0, "updateBounty: amount must be positive");
+    assert(bounties.member(id), "updateBounty: no such bounty");
+    const b = bounties.lookup(id);
+    assert(b.status == BountyStatus.Open, "updateBounty: bounty is not open");
+    assert(b.org == orgKey(orgSecretKey()), "updateBounty: caller is not the bounty org");
+    bounties.remove(id);
+    bounties.insert(
+        disclose(id),
+        disclose(Bounty { amount, deadline, org: b.org, status: BountyStatus.Open }),
+    );
+}
+
+// Transparent demo-only submission fee. The fee is visible next to the
+// funding wallet on-chain.
+export circuit submitReport(rawBountyId: Uint<64>): Uint<64> {
+    const bountyId = disclose(rawBountyId);
+    assert(bounties.member(bountyId), "submitReport: no such bounty");
+    const b = bounties.lookup(bountyId);
+    assert(b.status == BountyStatus.Open, "submitReport: bounty is not open");
+    receiveUnshielded(nativeToken(), disclose(5000000 as Uint<128>));
+    const sid = nextSubmissionId;
+    submissions.insert(
+        disclose(sid),
+        disclose(Submission {
+            bountyId,
+            hunter: disclose(hunterKey(hunterSecretKey())),
+            outcome: Outcome.Pending,
+            payoutAmount: 0 as Uint<64>,
+        }),
+    );
+    feeEscrowed = disclose((feeEscrowed + 5) as Uint<64>);
+    nextSubmissionId.increment(1);
+    return sid;
+}
+
+// Transparent demo-only resolution. Valid payout funding is also visible.
+export circuit resolveSubmission(rawSubmissionId: Uint<64>, rawOutcome: Uint<8>, rawPayoutAmount: Uint<64>): [] {
+    const submissionId = disclose(rawSubmissionId);
+    const outcome = disclose(rawOutcome);
+    const payoutAmount = disclose(rawPayoutAmount);
+    assert(submissions.member(submissionId), "resolve: no such submission");
+    const sub = submissions.lookup(submissionId);
+    assert(sub.outcome == Outcome.Pending, "resolve: already resolved");
+    const bid = sub.bountyId;
+    assert(bounties.member(bid), "resolve: bounty missing");
+    assert(bounties.lookup(bid).org == orgKey(orgSecretKey()), "resolve: caller is not the bounty org");
+    assert(outcome >= 1 && outcome <= 3, "resolve: invalid outcome");
+
+    if (outcome == 2 as Uint<8>) {
+        feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
+    } else { if (outcome == 3 as Uint<8>) {
+        feesBurned = disclose((feesBurned + 5) as Uint<64>);
+    } else {
+        assert(payoutAmount > 0, "resolve: valid payout must be positive");
+        receiveUnshielded(nativeToken(), payoutAmount as Uint<128>);
+        feesRefunded = disclose((feesRefunded + 5) as Uint<64>);
+        totalPaid = disclose((totalPaid + payoutAmount) as Uint<64>);
+        const b = bounties.lookup(bid);
+        bounties.remove(bid);
+        bounties.insert(
+            disclose(bid),
+            disclose(Bounty { amount: b.amount, deadline: b.deadline, org: b.org, status: BountyStatus.Closed }),
+        );
+    } }
+
+    submissions.remove(submissionId);
+    const resolved: Outcome =
+        outcome == 1 as Uint<8> ? Outcome.Valid :
+        outcome == 2 as Uint<8> ? Outcome.Duplicate : Outcome.Slop;
+    submissions.insert(
+        disclose(submissionId),
+        disclose(Submission {
+            bountyId: bid,
+            hunter: sub.hunter,
+            outcome: resolved,
+            payoutAmount: outcome == 1 as Uint<8> ? payoutAmount : 0 as Uint<64>,
+        }),
+    );
+}
+
+export circuit getBounty(rawId: Uint<64>): [Uint<64>, Uint<64>, Bytes<32>, Uint<8>] {
+    const id = disclose(rawId);
+    const b = bounties.lookup(id);
+    return [b.amount, b.deadline, b.org, b.status == BountyStatus.Open ? 0 as Uint<8> : 1 as Uint<8>];
+}
+
+export circuit getSubmission(rawId: Uint<64>): [Uint<64>, Bytes<32>, Uint<8>] {
+    const id = disclose(rawId);
+    const s = submissions.lookup(id);
+    const oc: Uint<8> =
+        s.outcome == Outcome.Pending ? 0 as Uint<8> :
+        s.outcome == Outcome.Valid ? 1 as Uint<8> :
+        s.outcome == Outcome.Duplicate ? 2 as Uint<8> : 3 as Uint<8>;
+    return [s.bountyId, s.hunter, oc];
+}
+
+export circuit getStats(): [Uint<64>, Uint<64>, Uint<64>, Uint<64>] {
+    return [feeEscrowed, feesBurned, feesRefunded, totalPaid];
+}

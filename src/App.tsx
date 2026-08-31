@@ -14,6 +14,7 @@ import Inbox from './components/Inbox';
 import EditProgram from './components/EditProgram';
 import { useSession } from './hooks/useSession';
 import { initAuth, signOut } from './lib/supabase';
+import { isTransparentDemoMode } from './lib/deployment-mode';
 
 const App: React.FC = () => {
   const midnight = useMidnight();
@@ -142,6 +143,11 @@ const App: React.FC = () => {
         </div>
       </nav>
 
+      {isTransparentDemoMode && (
+        <div style={{ padding: '10px var(--an-margin-safe)', background: '#5b160e', color: '#ffd9d2', textAlign: 'center', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: '0.04em' }}>
+          TRANSPARENT DEMO MODE — STAKE AND PAYOUT FUNDING USE PUBLIC UNSHIELDED NIGHT. THIS IS NOT THE PRIVACY DEPLOYMENT.
+        </div>
+      )}
       <main style={{ flexGrow: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: 'var(--an-stack-lg) var(--an-margin-safe) var(--an-stack-md)' }}>
         {route.page === 'landing' && <Landing midnight={midnight} />}
         {route.page === 'login' && <Login midnight={midnight} role="hunter" />}

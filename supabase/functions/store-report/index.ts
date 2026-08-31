@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const INDEXER_URL = Deno.env.get('ANONITY_INDEXER_URL') ?? 'https://indexer.preprod.midnight.network/api/v4/graphql';
 const CONTRACT_ADDRESS = Deno.env.get('ANONITY_CONTRACT_ADDRESS') ?? '';
+const DEMO_CONTRACT_ADDRESS = Deno.env.get('ANONITY_DEMO_CONTRACT_ADDRESS') ?? '';
 
 const VERIFY_QUERY = `
   query VerifySubmitReport($address: HexEncoded!, $offset: ContractActionOffset) {
@@ -33,7 +34,7 @@ const isPositiveSafeInteger = (value: unknown): value is number =>
 const isCiphertext = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 250_000;
 
-const verifySubmitReportTransaction = async (txId: string): Promise<boolean> => {
+const verifySubmitReportTransaction = async (txId: string, contractAddress: string): Promise<boolean> => {
   // The connector may expose either the transaction hash or its identifier.
   // Try both GraphQL offset variants; no report plaintext is sent to the indexer.
   for (const key of ['identifier', 'hash'] as const) {
@@ -44,7 +45,7 @@ const verifySubmitReportTransaction = async (txId: string): Promise<boolean> => 
         body: JSON.stringify({
           query: VERIFY_QUERY,
           variables: {
-            address: CONTRACT_ADDRESS,
+            address: contractAddress,
             offset: { transactionOffset: { [key]: txId } },
           },
         }),
@@ -67,7 +68,8 @@ const verifySubmitReportTransaction = async (txId: string): Promise<boolean> => 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (request.method !== 'POST') return response({ error: 'method not allowed' }, 405);
-  if (!CONTRACT_ADDRESS) return response({ error: 'chain gate is not configured' }, 503);
+  const allowedContractAddresses = [CONTRACT_ADDRESS, DEMO_CONTRACT_ADDRESS].filter(Boolean);
+  if (allowedContractAddresses.length === 0) return response({ error: 'chain gate is not configured' }, 503);
 
   let body: Record<string, unknown>;
   try {
@@ -79,11 +81,17 @@ Deno.serve(async (request) => {
   const submissionId = body.submission_id;
   const bountyId = body.bounty_id;
   const txId = body.tx_id;
+  const requestedContractAddress = typeof body.contract_address === 'string' && body.contract_address.trim()
+    ? body.contract_address.trim()
+    : CONTRACT_ADDRESS;
+  if (!allowedContractAddresses.includes(requestedContractAddress)) {
+    return response({ error: 'contract address is not allowed' }, 400);
+  }
   if (!isPositiveSafeInteger(submissionId) || !isPositiveSafeInteger(bountyId) || typeof txId !== 'string' || txId.length > 200 || !isCiphertext(body.org_ciphertext) || !isCiphertext(body.hunter_ciphertext) || !isCiphertext(body.hunter_encryption_public_key) || body.encryption_version !== 1) {
     return response({ error: 'invalid encrypted report envelope' }, 400);
   }
 
-  if (!await verifySubmitReportTransaction(txId)) {
+  if (!await verifySubmitReportTransaction(txId, requestedContractAddress)) {
     return response({ error: 'no finalized submitReport transaction found' }, 422);
   }
 

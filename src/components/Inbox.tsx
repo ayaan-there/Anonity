@@ -5,6 +5,7 @@ import { navigate } from '../router';
 import { listOwnedProgramIds } from '../lib/programMeta';
 import { listReportComments, listReportsForHunter, type PublicSubmission, type ReportComment, type ReportContent } from '../lib/reports';
 import { getOrCreateHunterSecretKey, hunterCommitment } from '../lib/hunter-identity';
+import { isTransparentDemoMode } from '../lib/deployment-mode';
 import SubmissionDetails from './SubmissionDetails';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; submissionId?: bigint };
@@ -183,9 +184,9 @@ const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
                 {selectedReport.impact && <><span className="an-label an-secondary-text">IMPACT</span><p className="an-dense" style={{ whiteSpace: 'pre-wrap' }}>{selectedReport.impact}</p></>}
               </div>
               {selectedSubmission?.outcome === 1 ? (
-                <p className="an-label an-accent-text">VALID REPORT · SHIELDED PAYOUT FUNDED BY PROGRAM OWNER</p>
+                <p className="an-label an-accent-text">VALID REPORT · {isTransparentDemoMode ? 'TRANSPARENT DEMO PAYOUT FUNDED BY PROGRAM OWNER' : 'SHIELDED PAYOUT FUNDED BY PROGRAM OWNER'}</p>
               ) : <p className="an-label an-dim">TRIAGE STATUS IS RECORDED ON CHAIN.</p>}
-              {selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
+              {!isTransparentDemoMode && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
                 <form onSubmit={(event) => void claim(event)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-unit)', paddingTop: 'var(--an-stack-sm)', borderTop: '1px solid var(--an-outline-variant)' }}>
                   <span className="an-label an-secondary-text">CLAIM SHIELDED PAYOUT</span>
                   <span className="an-label an-dim">PAYOUT: {selectedSubmission.payoutAmount.toString()} ATOMIC NIGHT · THE CONNECTED WALLET RECEIVES IT.</span>
