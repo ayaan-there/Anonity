@@ -5,7 +5,7 @@ import { navigate } from '../router';
 import { listOwnedProgramIds } from '../lib/programMeta';
 import { listReportComments, listReportsForHunter, type PublicSubmission, type ReportComment, type ReportContent } from '../lib/reports';
 import { getOrCreateHunterSecretKey, hunterCommitment } from '../lib/hunter-identity';
-import { isTransparentDemoMode } from '../lib/deployment-mode';
+import { usePaymentMode } from '../lib/deployment-mode';
 import SubmissionDetails from './SubmissionDetails';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; submissionId?: bigint };
@@ -18,6 +18,7 @@ const parseNonce = (value: string): string | null => {
 
 const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
   const { submissions, round, persona, boardReady, address } = midnight;
+  const { isTransparent } = usePaymentMode();
   const [ownedProgramIds, setOwnedProgramIds] = React.useState<Set<bigint> | null>(null);
   const [reports, setReports] = React.useState<ReportContent[]>([]);
   const [comments, setComments] = React.useState<Map<number, ReportComment[]>>(new Map());
@@ -125,9 +126,9 @@ const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
   const claim = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedReport || !selectedSubmission || selectedSubmission.outcome !== 1 || claimBusy) return;
-    if (isTransparentDemoMode) {
+    if (isTransparent) {
       if (!address) {
-        setClaimNotice('CONNECT THE HUNTER WALLET BEFORE CLAIMING THE TRANSPARENT DEMO PAYOUT.');
+        setClaimNotice('CONNECT THE HUNTER WALLET BEFORE CLAIMING THE PAYOUT.');
         return;
       }
       setClaimBusy(true);
@@ -199,20 +200,19 @@ const Inbox: React.FC<Props> = ({ midnight, submissionId }) => {
                 {selectedReport.impact && <><span className="an-label an-secondary-text">IMPACT</span><p className="an-dense" style={{ whiteSpace: 'pre-wrap' }}>{selectedReport.impact}</p></>}
               </div>
               {selectedSubmission?.outcome === 1 ? (
-                <p className="an-label an-accent-text">VALID REPORT · {isTransparentDemoMode ? 'TRANSPARENT DEMO PAYOUT FUNDED BY PROGRAM OWNER' : 'SHIELDED PAYOUT FUNDED BY PROGRAM OWNER'}</p>
+                <p className="an-label an-accent-text">VALID REPORT · PAYOUT FUNDED BY PROGRAM OWNER</p>
               ) : <p className="an-label an-dim">TRIAGE STATUS IS RECORDED ON CHAIN.</p>}
-              {isTransparentDemoMode && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
+              {isTransparent && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
                 <form onSubmit={(event) => void claim(event)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-unit)', paddingTop: 'var(--an-stack-sm)', borderTop: '1px solid var(--an-outline-variant)' }}>
-                  <span className="an-label an-secondary-text">CLAIM TRANSPARENT DEMO PAYOUT</span>
-                  <span className="an-label an-dim">PAYOUT: {selectedSubmission.payoutAmount.toString()} ATOMIC NIGHT · CLAIMS TO THE CONNECTED UNSHIELDED WALLET.</span>
-                  <span className="an-label an-dim">This demo claim is public on-chain. It proves the local hunter identity but does not provide privacy.</span>
+                  <span className="an-label an-secondary-text">CLAIM PAYOUT</span>
+                  <span className="an-label an-dim">PAYOUT: {selectedSubmission.payoutAmount.toString()} ATOMIC NIGHT · CLAIMS TO THE CONNECTED WALLET.</span>
                   {claimNotice && <span className="an-label" style={{ color: claimNotice.startsWith('PAYOUT CLAIM SUBMITTED') ? 'var(--an-accent)' : 'var(--an-error)' }}>{claimNotice}</span>}
                   <button type="submit" className="an-btn" disabled={claimBusy || !address} style={{ width: 'auto', alignSelf: 'flex-start' }}>{claimBusy ? 'CLAIMING…' : address ? 'CLAIM PAYOUT' : 'CONNECT WALLET TO CLAIM'}</button>
                 </form>
               )}
-              {!isTransparentDemoMode && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
+              {!isTransparent && selectedSubmission?.outcome === 1 && selectedSubmission.payoutAmount > 0n && (
                 <form onSubmit={(event) => void claim(event)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--an-unit)', paddingTop: 'var(--an-stack-sm)', borderTop: '1px solid var(--an-outline-variant)' }}>
-                  <span className="an-label an-secondary-text">CLAIM SHIELDED PAYOUT</span>
+                  <span className="an-label an-secondary-text">CLAIM PAYOUT</span>
                   <span className="an-label an-dim">PAYOUT: {selectedSubmission.payoutAmount.toString()} ATOMIC NIGHT · THE CONNECTED WALLET RECEIVES IT.</span>
                   <input className="an-input" value={payoutNonce} onChange={(event) => setPayoutNonce(event.target.value)} placeholder="Qualified coin nonce (64 hex characters)" aria-label="Qualified payout coin nonce" />
                   <input className="an-input" inputMode="numeric" value={payoutMtIndex} onChange={(event) => setPayoutMtIndex(event.target.value.replace(/[^0-9]/g, ''))} placeholder="Merkle-tree index" aria-label="Qualified payout coin Merkle-tree index" />

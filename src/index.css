@@ -53,6 +53,7 @@ html, body {
   color: var(--an-primary);
   font-family: 'Geist', system-ui, sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 ::selection { background: var(--an-primary); color: var(--an-bg); }
@@ -96,6 +97,109 @@ html, body {
 .an-dim { color: var(--an-on-surface-variant); }
 .an-accent-text { color: var(--an-accent); }
 
+/* ── app navigation and mode control ─────────────────────────── */
+.app-nav { gap: var(--an-gutter); }
+.app-nav__brand { flex-shrink: 0; }
+.app-nav__links { min-width: 0; }
+.app-nav__actions { min-width: 0; justify-content: flex-end; }
+.payment-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 5px 9px;
+  border: 1px solid var(--an-outline-variant);
+  background: var(--an-surface-lowest);
+  color: var(--an-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--an-fast) ease, background-color var(--an-fast) ease;
+}
+.payment-mode-toggle:disabled { opacity: 0.5; cursor: wait; }
+.payment-mode-toggle:focus-visible,
+.payment-mode-modal__actions button:focus-visible {
+  outline: 2px solid var(--an-primary);
+  outline-offset: 3px;
+}
+.payment-mode-toggle:active:not(:disabled),
+.payment-mode-modal__actions button:active { transform: scale(0.97); }
+.payment-mode-toggle__track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 18px;
+  padding: 2px;
+  border: 1px solid var(--an-outline);
+  background: var(--an-surface-high);
+  flex-shrink: 0;
+  transition: background-color var(--an-fast) ease, border-color var(--an-fast) ease;
+}
+.payment-mode-toggle__thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--an-secondary);
+  transform: translateX(0);
+  transition: transform var(--an-ui) var(--an-ease-out), background-color var(--an-fast) ease;
+}
+.payment-mode-toggle--shielded .payment-mode-toggle__track { border-color: var(--an-accent); }
+.payment-mode-toggle--shielded .payment-mode-toggle__thumb { background: var(--an-accent); transform: translateX(0); }
+.payment-mode-toggle--unshielded .payment-mode-toggle__track { border-color: #f5c542; }
+.payment-mode-toggle--unshielded .payment-mode-toggle__thumb { background: #f5c542; transform: translateX(16px); }
+.payment-mode-toggle__copy { display: flex; flex-direction: column; gap: 3px; }
+.payment-mode-toggle__eyebrow { color: var(--an-on-surface-variant); font-size: 9px; }
+.payment-mode-toggle__value { color: var(--an-primary); font-size: 10px; }
+
+.payment-mode-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.payment-mode-modal__backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.78); }
+.payment-mode-modal__dialog {
+  position: relative;
+  width: min(100%, 520px);
+  border: 1px solid var(--an-outline);
+  background: var(--an-surface);
+  padding: var(--an-stack-md);
+  box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.4);
+}
+.payment-mode-modal__signal {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: var(--an-gutter);
+  background: #f5c542;
+  color: #111318;
+  font: 800 22px 'IBM Plex Mono', monospace;
+}
+.payment-mode-modal__kicker { color: #f5c542; margin: 0 0 var(--an-stack-sm); }
+.payment-mode-modal__dialog h2 { margin: 0; color: var(--an-primary); font-size: clamp(22px, 4vw, 32px); line-height: 115%; letter-spacing: -0.02em; }
+.payment-mode-modal__copy { margin: var(--an-gutter) 0 0; color: var(--an-secondary); }
+.payment-mode-modal__actions { display: flex; gap: var(--an-stack-sm); margin-top: var(--an-stack-md); }
+.payment-mode-modal__actions button {
+  min-height: 46px;
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font: 700 11px 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
+  transition: transform 160ms var(--an-ease-out), background-color var(--an-fast) ease;
+}
+.payment-mode-modal__continue { background: var(--an-accent); color: #0d1510; }
+.payment-mode-modal__back { background: #f5c542; color: #111318; }
+
+@media (hover: hover) and (pointer: fine) {
+  .payment-mode-toggle:hover:not(:disabled) { border-color: var(--an-primary); background: var(--an-surface-low); }
+  .payment-mode-modal__continue:hover { background: #86efac; }
+  .payment-mode-modal__back:hover { background: #fde68a; }
+}
+
 .profile-shell { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--an-stack-md); }
 .profile-sidebar { align-self: start; display: flex; flex-direction: column; padding: 8px; background: var(--an-surface-lowest); }
 .profile-nav { border: 0; border-bottom: 1px solid var(--an-outline-variant); background: transparent; color: var(--an-secondary); font: 600 11px 'IBM Plex Mono', monospace; text-align: left; padding: 12px 8px; cursor: pointer; }
@@ -124,6 +228,31 @@ html, body {
 .inbox-thread p { margin: 0; padding: 10px; background: var(--an-surface-lowest); white-space: pre-wrap; }
 
 @media (max-width: 700px) {
+  :root { --an-margin-safe: 16px; --an-stack-lg: 44px; }
+  .app-nav {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'brand actions' 'links links';
+    align-items: center !important;
+    gap: 12px;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+  .app-nav__brand { grid-area: brand; }
+  .app-nav__links { grid-area: links; width: 100%; overflow-x: auto; padding-top: 4px; padding-bottom: 2px; scrollbar-width: none; }
+  .app-nav__links::-webkit-scrollbar { display: none; }
+  .app-nav__actions { grid-area: actions; gap: 8px !important; flex-wrap: wrap; }
+  .app-nav__identity { display: none; }
+  .app-nav__actions > .an-btn { min-height: 44px; width: auto !important; padding: 8px 10px !important; font-size: 10px !important; }
+  .payment-mode-toggle { min-height: 44px; padding: 4px 7px; }
+  .payment-mode-toggle__eyebrow { display: none; }
+  .payment-mode-toggle__value { font-size: 9px; }
+  .payment-mode-modal { padding: 16px; }
+  .payment-mode-modal__dialog { padding: var(--an-gutter); box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.4); }
+  .payment-mode-modal__actions { flex-direction: column; }
+  .landing-hero-grid { grid-template-columns: 1fr !important; }
+  .landing-hero-card { margin-top: var(--an-stack-sm) !important; }
+  .landing-hero-actions > .an-btn { width: 100% !important; }
   .profile-shell, .profile-columns { grid-template-columns: 1fr; }
   .inbox-layout { grid-template-columns: 1fr; }
   .profile-sidebar { order: 2; }

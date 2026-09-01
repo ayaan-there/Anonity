@@ -17,7 +17,7 @@ A plain-English guide for using the Anonity bounty board on Midnight Preprod. No
 1. Open <https://an0n1ty.vercel.app/>.
 2. Confirm the wallet is set to Midnight Preprod.
 3. Connect Lace or 1AM and approve the request.
-4. Read the yellow banner before making a payment. The current recording link uses transparent demo funding; the privacy deployment uses shielded funding.
+4. Leave the transaction-mode toggle beside Connect Wallet on Shielded. If your wallet lacks shielded NIGHT, select Unshielded and confirm the alert to use the testing fallback.
 5. Use only testnet funds and never paste a secret key or recovery phrase into the app or a support message.
 
 ---
@@ -62,9 +62,9 @@ The report is sealed in your browser twice: once to the program's public encrypt
 
 ## Your First Transaction
 
-For the current recording demo, the first transaction is a transparent unshielded NIGHT transaction. The wallet address and amount can be visible on-chain, so do not describe this flow as anonymous payment. The encrypted report body still leaves the browser only as ciphertext.
+The app opens in **Shielded** mode. Use the transaction-mode toggle beside **Connect Wallet** to choose the matching contract. If you switch to **Unshielded**, confirm the alert before continuing: that path is for testing with public NIGHT and is not anonymous. Return to **Shielded** whenever you want the privacy path.
 
-For the privacy deployment, use the shielded contract with a wallet that has shielded NIGHT and the required DUST. Confirm the yellow demo banner is absent before presenting that flow as the privacy path.
+Shielded transactions require shielded NIGHT and the required DUST. Unshielded transactions use public NIGHT and may expose the wallet and amount on-chain. The encrypted report body still leaves the browser only as ciphertext in either mode.
 
 ### 6. Resolve submissions (organizations)
 

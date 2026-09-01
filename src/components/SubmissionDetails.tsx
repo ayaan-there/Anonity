@@ -4,7 +4,6 @@ import { navigate } from '../router';
 import { getReport, insertReportComment, listReportComments, type ReportComment, type ReportContent } from '../lib/reports';
 import { isProgramOwner } from '../lib/programMeta';
 import { parseNightToAtomic } from '../lib/night';
-import { isTransparentDemoMode } from '../lib/deployment-mode';
 
 type Props = { midnight: ReturnType<typeof useMidnight>; id: bigint };
 
@@ -133,7 +132,7 @@ const SubmissionDetails: React.FC<Props> = ({ midnight, id }) => {
           )}
           <div style={{ borderTop: '1px solid var(--an-outline-variant)', paddingTop: 'var(--an-stack-sm)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span className="an-label an-secondary-text">PAYOUT</span>
-            <span className="an-dense an-dim">{isTransparentDemoMode ? 'DEMO ONLY: VALID PAYOUT FUNDING USES TRANSPARENT NIGHT.' : 'PAYOUTS MUST USE THE PROOF-GATED SHIELDED CLAIM FLOW. NO RECIPIENT ADDRESS IS STORED.'}</span>
+            <span className="an-dense an-dim">PAYOUTS ARE AUTHORIZED BY THE ACTIVE CONTRACT. NO RECIPIENT ADDRESS IS STORED.</span>
           </div>
         </section>
       ) : (

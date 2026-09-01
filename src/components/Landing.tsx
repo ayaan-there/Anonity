@@ -21,14 +21,14 @@ const Landing: React.FC<Props> = () => {
           padding: 'var(--an-stack-lg) 0',
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 'var(--an-gutter)', width: '100%' }}>
+        <div className="landing-hero-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 'var(--an-gutter)', width: '100%' }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'var(--an-stack-md)' }}>
             <h1 className="an-hook">FAME OR MONEY?</h1>
             <h2 className="an-punchline an-dim">MONEY my brotherrrr, Fame shouldn't follow when in cyber.</h2>
             <p className="an-dense" style={{ maxWidth: 640, margin: 0 }}>
               Build a reputation, not an exposure trail. Prove the bug. Not who you are.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--an-gutter)', marginTop: 'var(--an-stack-sm)' }}>
+            <div className="landing-hero-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--an-gutter)', marginTop: 'var(--an-stack-sm)' }}>
               <button onClick={() => navigate('/login')} className="an-btn" style={{ width: 'auto', borderColor: 'var(--an-accent)', boxShadow: 'rgba(74, 222, 128, 0.2) 0px 0px 15px' }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--an-accent)')}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')}
@@ -48,7 +48,7 @@ const Landing: React.FC<Props> = () => {
           </div>
 
           {/* Researcher card */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 'var(--an-stack-md)' }}>
+          <div className="landing-hero-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 'var(--an-stack-md)' }}>
             <div
               className="an-brutal"
               style={{

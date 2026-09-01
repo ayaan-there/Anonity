@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { BountyRow, BoardStats, SubmissionRow } from '../hooks/useMidnight';
 import { navigate } from '../router';
-import { isTransparentDemoMode } from '../lib/deployment-mode';
 
 type BountyBoardProps = {
   network: string;
@@ -88,8 +87,8 @@ const BountyBoard: React.FC<BountyBoardProps> = ({
       </div>
 
       <p className="mono" style={{ margin: 0, fontSize: 11.5, lineHeight: 1.6, color: 'var(--color-on-surface-variant)', maxWidth: 780 }}>
-        Post a bounty as an organization, report a vulnerability anonymously as a hunter, and resolve
-        outcomes with ZK-proven authority. {isTransparentDemoMode ? 'DEMO WARNING: stake and valid-payout funding are transparent.' : 'The chain sees commitments and fee accounting — never a wallet-linked identity.'} Anti-spam fee: 5 NIGHT per report enters contract escrow; resolution records a refund or forfeiture.
+        Post a bounty as an organization, report a vulnerability as a hunter, and resolve
+        outcomes with ZK-proven authority. Anti-spam fee: 5 NIGHT per report enters contract escrow; resolution records a refund or forfeiture.
       </p>
 
       {stats && (

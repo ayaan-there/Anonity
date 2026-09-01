@@ -14,11 +14,64 @@ import Inbox from './components/Inbox';
 import EditProgram from './components/EditProgram';
 import { useSession } from './hooks/useSession';
 import { initAuth, signOut } from './lib/supabase';
-import { isTransparentDemoMode } from './lib/deployment-mode';
+import { usePaymentMode, type PaymentMode } from './lib/deployment-mode';
+
+const PaymentModeToggle: React.FC<{
+  mode: PaymentMode;
+  disabled?: boolean;
+  onRequestChange: (mode: PaymentMode) => void;
+}> = ({ mode, disabled = false, onRequestChange }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={mode === 'shielded'}
+    aria-label={`Transaction mode: ${mode}. Switch to ${mode === 'shielded' ? 'unshielded' : 'shielded'}`}
+    className={`payment-mode-toggle payment-mode-toggle--${mode}`}
+    disabled={disabled}
+    onClick={() => onRequestChange(mode === 'shielded' ? 'unshielded' : 'shielded')}
+  >
+    <span className="payment-mode-toggle__track" aria-hidden="true">
+      <span className="payment-mode-toggle__thumb" />
+    </span>
+    <span className="payment-mode-toggle__copy">
+      <span className="an-label payment-mode-toggle__eyebrow">TRANSACTION MODE</span>
+      <span className="an-label payment-mode-toggle__value">{mode}</span>
+    </span>
+  </button>
+);
+
+const UnshieldedModeAlert: React.FC<{
+  onContinue: () => void;
+  onGoBack: () => void;
+}> = ({ onContinue, onGoBack }) => (
+  <div className="payment-mode-modal" role="presentation">
+    <div className="payment-mode-modal__backdrop" aria-hidden="true" />
+    <section
+      className="payment-mode-modal__dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="unshielded-mode-title"
+      aria-describedby="unshielded-mode-copy"
+    >
+      <div className="payment-mode-modal__signal" aria-hidden="true">!</div>
+      <p className="an-label payment-mode-modal__kicker">MODE CHANGE</p>
+      <h2 id="unshielded-mode-title">Alert: This will let you test the platform, but the transactions will not be anonymous.</h2>
+      <p id="unshielded-mode-copy" className="an-dense payment-mode-modal__copy">
+        Continue only if you are testing with public, unshielded NIGHT. You can return to Shielded mode at any time.
+      </p>
+      <div className="payment-mode-modal__actions">
+        <button type="button" className="payment-mode-modal__continue" onClick={onContinue}>CONTINUE</button>
+        <button type="button" className="payment-mode-modal__back" onClick={onGoBack}>GO BACK TO SHIELDED</button>
+      </div>
+    </section>
+  </div>
+);
 
 const App: React.FC = () => {
   const midnight = useMidnight();
   const session = useSession();
+  const { mode, setMode } = usePaymentMode();
+  const [showUnshieldedAlert, setShowUnshieldedAlert] = useState(false);
   const [route, setRoute] = useState<Route>(parseHash);
 
   useEffect(() => { void initAuth(); }, []);
@@ -34,6 +87,28 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+
+  useEffect(() => {
+    if (!showUnshieldedAlert) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowUnshieldedAlert(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [showUnshieldedAlert]);
+
+  const requestModeChange = (nextMode: PaymentMode) => {
+    if (nextMode === 'unshielded' && mode === 'shielded') {
+      setShowUnshieldedAlert(true);
+      return;
+    }
+    setMode(nextMode);
+  };
 
   const isConnected = midnight.walletState === 'connected';
   const isConnecting = midnight.walletState === 'connecting';
@@ -61,7 +136,7 @@ const App: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--an-bg)' }}>
       <nav
-        className="an-brutal-b"
+        className="an-brutal-b app-nav"
         style={{
           position: 'sticky',
           top: 0,
@@ -75,7 +150,7 @@ const App: React.FC = () => {
       >
         <a
           href="#/"
-          className="an-mono"
+          className="an-mono app-nav__brand"
           style={{
             fontWeight: 700,
             letterSpacing: '-0.03em',
@@ -86,13 +161,14 @@ const App: React.FC = () => {
         >
           ANONITY
         </a>
-        <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
+        <div className="app-nav__links" style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
           <NavLink to="/programs" label="PROGRAMS" active={route.page === 'programs' || route.page === 'program'} />
           {midnight.persona === 'org' && <NavLink to="/dashboard" label="DASHBOARD" active={route.page === 'dashboard'} />}
           {!isConnected && <NavLink to="/orgs" label="FOR ORGS" active={route.page === 'orgs'} />}
           {hasPersona && <NavLink to="/inbox" label="INBOX" active={route.page === 'inbox'} />}
         </div>
-        <div style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
+        <div className="app-nav__actions" style={{ display: 'flex', gap: 'var(--an-gutter)', alignItems: 'center' }}>
+          <PaymentModeToggle mode={mode} disabled={midnight.loading} onRequestChange={requestModeChange} />
           {hasPersona ? (
             <>
               {!isConnected ? (
@@ -116,7 +192,7 @@ const App: React.FC = () => {
                   </button>
                 </>
               ) : null}
-              <span className="an-label an-dim">{session.email ?? 'LOCAL HUNTER ID'}</span>
+              <span className="an-label an-dim app-nav__identity">{session.email ?? 'LOCAL HUNTER ID'}</span>
               <button
                 onClick={() => {
                   if (session.email) void signOut();
@@ -143,11 +219,6 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {isTransparentDemoMode && (
-        <div style={{ padding: '10px var(--an-margin-safe)', background: '#f5c542', color: '#111318', textAlign: 'center', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: '0.04em', fontWeight: 700 }}>
-          TRANSPARENT DEMO MODE — STAKE AND PAYOUT FUNDING USE PUBLIC UNSHIELDED NIGHT. THIS IS NOT THE PRIVACY DEPLOYMENT.
-        </div>
-      )}
       <main style={{ flexGrow: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: 'var(--an-stack-lg) var(--an-margin-safe) var(--an-stack-md)' }}>
         {route.page === 'landing' && <Landing midnight={midnight} />}
         {route.page === 'login' && <Login midnight={midnight} role="hunter" />}
@@ -185,6 +256,15 @@ const App: React.FC = () => {
           ))}
         </div>
       </footer>
+      {showUnshieldedAlert && (
+        <UnshieldedModeAlert
+          onContinue={() => {
+            setShowUnshieldedAlert(false);
+            setMode('unshielded');
+          }}
+          onGoBack={() => setShowUnshieldedAlert(false)}
+        />
+      )}
     </div>
   );
 };

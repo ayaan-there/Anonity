@@ -26,7 +26,7 @@ import {
   ANONITY_DEMO_PRIVATE_STATE_ID,
   AnonityModule as AnonityDemoModule,
 } from '../lib/anonity-demo-contract';
-import { getBoardContractAddress, isTransparentDemoMode } from '../lib/deployment-mode';
+import { getBoardContractAddress, isTransparentMode, usePaymentMode, type PaymentMode } from '../lib/deployment-mode';
 import { getOrCreateHunterSecretKey, getOrCreateOrgSecretKey } from '../lib/hunter-identity';
 
 export type BountyRow = {
@@ -98,7 +98,7 @@ export type BoardView = {
 
 type CircuitRunResult = { ok: boolean; result: unknown; txId: string | null };
 
-const fetchBoardState = async (contractAddress: string): Promise<BoardView | null> => {
+const fetchBoardState = async (contractAddress: string, mode: PaymentMode): Promise<BoardView | null> => {
   try {
     const res = await fetch(INDEXER_GRAPHQL_URL, {
       method: 'POST',
@@ -113,6 +113,7 @@ const fetchBoardState = async (contractAddress: string): Promise<BoardView | nul
     const stateHex = gql?.data?.contractAction?.state;
     if (!stateHex) return null;
     const contractState = CompactContractState.deserialize(hexToBytes(stateHex));
+    const boardModule = isTransparentMode(mode) ? AnonityDemoModule : AnonityModule;
     const l = boardModule.ledger(contractState.data);
 
     const bounties: BountyRow[] = [];
@@ -176,10 +177,6 @@ const toCompactUserAddress = (bech32Address: string): string => {
   const parsed = MidnightBech32m.parse(bech32Address);
   return parsed.decode(UnshieldedAddress, getNetworkId()).hexString;
 };
-
-const boardModule = isTransparentDemoMode ? AnonityDemoModule : AnonityModule;
-const boardCompiledContract = isTransparentDemoMode ? compiledAnonityDemoContract : compiledAnonityContract;
-const boardPrivateStateId = isTransparentDemoMode ? ANONITY_DEMO_PRIVATE_STATE_ID : ANONITY_PRIVATE_STATE_ID;
 
 type CompatibleWallet = { id: string; api: InitialAPI };
 
@@ -275,6 +272,7 @@ const connectToWallet = (netId: string, walletId?: string | null): Promise<Conne
 const initializeProviders = async (
   connectedAPI: ConnectedAPI,
   config: Awaited<ReturnType<ConnectedAPI['getConfiguration']>>,
+  mode: PaymentMode,
 ): Promise<Providers> => {
   const networkId = getNetworkId();
   setNetworkId(networkId);
@@ -282,7 +280,7 @@ const initializeProviders = async (
   const shieldedAddresses = await connectedAPI.getShieldedAddresses();
 
   const zkConfigProvider = new FetchZkConfigProvider<string>(
-    isTransparentDemoMode ? `${window.location.origin}/demo` : window.location.origin,
+    isTransparentMode(mode) ? `${window.location.origin}/demo` : window.location.origin,
     fetch.bind(window),
   );
 
@@ -383,6 +381,7 @@ export interface UseMidnightReturn {
 }
 
 export function useMidnight(): UseMidnightReturn {
+  const { mode } = usePaymentMode();
   const [walletState, setWalletState] = useState<WalletState>('detecting');
   const [address, setAddress] = useState<string | null>(null);
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
@@ -405,6 +404,7 @@ export function useMidnight(): UseMidnightReturn {
   const boardContractRef = useRef<any>(null);
   const walletStateRef = useRef<WalletState>('detecting');
   const autoConnectAttemptedRef = useRef(false);
+  const boundModeRef = useRef<PaymentMode>(mode);
 
   const fetchboardSecrets = (): { orgSecretKey: Uint8Array; hunterSecretKey: Uint8Array } => {
     return {
@@ -455,11 +455,11 @@ export function useMidnight(): UseMidnightReturn {
   // Public board reads: guests and post-login routing need bounties
   // without a wallet connection. Poll the indexer on a timer.
   useEffect(() => {
-    const addr = getBoardContractAddress();
+    const addr = getBoardContractAddress(mode);
     if (!addr) return;
     let cancelled = false;
     const load = async () => {
-      const s = await fetchBoardState(addr);
+      const s = await fetchBoardState(addr, mode);
       if (cancelled || !s) return;
       setBounties(s.bounties);
       setSubmissions(s.submissions);
@@ -472,7 +472,7 @@ export function useMidnight(): UseMidnightReturn {
       cancelled = true;
       clearInterval(t);
     };
-  }, []);
+  }, [mode]);
 
   const connect = useCallback(async () => {
     if (walletState === 'connecting' || walletState === 'connected') return;
@@ -495,26 +495,26 @@ export function useMidnight(): UseMidnightReturn {
       setAddress(addr);
       setWalletState('connected');
       persistWalletConnection(selectedWalletId);
-      const providers = await initializeProviders(connected, config);
+      const providers = await initializeProviders(connected, config, mode);
       providersRef.current = providers;
 
-      const boardAddress = getBoardContractAddress();
+      const boardAddress = getBoardContractAddress(mode);
       if (!boardAddress) {
-        setError(`No contract address configured. Set ${isTransparentDemoMode ? 'VITE_ANONITY_DEMO_CONTRACT' : 'VITE_ANONITY_CONTRACT'}.`);
+        setError(`No contract address configured. Set ${isTransparentMode(mode) ? 'VITE_ANONITY_DEMO_CONTRACT' : 'VITE_ANONITY_CONTRACT'}.`);
         return;
       }
 
       try {
         const boardSecrets = fetchboardSecrets();
         const boardFound = await findDeployedContract(providers as any, {
-          compiledContract: boardCompiledContract as any,
-          privateStateId: boardPrivateStateId,
+          compiledContract: (isTransparentMode(mode) ? compiledAnonityDemoContract : compiledAnonityContract) as any,
+          privateStateId: isTransparentMode(mode) ? ANONITY_DEMO_PRIVATE_STATE_ID : ANONITY_PRIVATE_STATE_ID,
           contractAddress: boardAddress,
           initialPrivateState: boardSecrets as any,
         });
         boardContractRef.current = boardFound;
         setBoardReady(true);
-        const boardState = await fetchBoardState(boardAddress);
+        const boardState = await fetchBoardState(boardAddress, mode);
         if (boardState) {
           setBounties(boardState.bounties);
           setSubmissions(boardState.submissions);
@@ -526,7 +526,7 @@ export function useMidnight(): UseMidnightReturn {
         const verifierMismatch = /undefined or have mismatched verifier keys/i.test(message);
         setError(
           verifierMismatch
-            ? `The ${isTransparentDemoMode ? 'transparent demo' : 'privacy'} contract address does not match the bundled verifier keys. ${isTransparentDemoMode ? 'Set VITE_ANONITY_DEMO_CONTRACT to the current demo address and redeploy.' : 'Redeploy the updated contract and set VITE_ANONITY_CONTRACT to the new address.'}`
+            ? `The ${isTransparentMode(mode) ? 'unshielded' : 'shielded'} contract address does not match the bundled verifier keys. ${isTransparentMode(mode) ? 'Set VITE_ANONITY_DEMO_CONTRACT to the current address and redeploy.' : 'Redeploy the updated contract and set VITE_ANONITY_CONTRACT to the current address.'}`
             : `Contract binding failed: ${message}`,
         );
         boardContractRef.current = null;
@@ -549,7 +549,57 @@ export function useMidnight(): UseMidnightReturn {
       setBoardReady(false);
       clearWalletConnection();
     }
-  }, [walletState, selectedWalletId]);
+  }, [walletState, selectedWalletId, mode]);
+
+  // A mode change keeps the wallet connection but rebuilds the contract binding
+  // against the matching verifier assets and deployed address.
+  useEffect(() => {
+    const connected = connectedAPIRef.current;
+    if (boundModeRef.current === mode || !connected || walletStateRef.current !== 'connected') return;
+    boundModeRef.current = mode;
+    let cancelled = false;
+    boardContractRef.current = null;
+    providersRef.current = null;
+    setBoardReady(false);
+    setLoading(true);
+
+    const rebind = async () => {
+      try {
+        const config = await connected.getConfiguration();
+        const providers = await initializeProviders(connected, config, mode);
+        const boardAddress = getBoardContractAddress(mode);
+        if (!boardAddress) throw new Error(`No contract address configured for ${mode} mode.`);
+        const boardFound = await findDeployedContract(providers as any, {
+          compiledContract: (isTransparentMode(mode) ? compiledAnonityDemoContract : compiledAnonityContract) as any,
+          privateStateId: isTransparentMode(mode) ? ANONITY_DEMO_PRIVATE_STATE_ID : ANONITY_PRIVATE_STATE_ID,
+          contractAddress: boardAddress,
+          initialPrivateState: fetchboardSecrets() as any,
+        });
+        if (cancelled) return;
+        providersRef.current = providers;
+        boardContractRef.current = boardFound;
+        setBoardReady(true);
+        const boardState = await fetchBoardState(boardAddress, mode);
+        if (cancelled || !boardState) return;
+        setBounties(boardState.bounties);
+        setSubmissions(boardState.submissions);
+        setRound(boardState.round);
+        setBoardStats(boardState.stats);
+      } catch (e: any) {
+        if (cancelled) return;
+        const message = deepestErrorMessage(e);
+        setError(`Could not switch to ${mode} mode: ${message}`);
+        boardContractRef.current = null;
+        setBoardReady(false);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void rebind();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   useEffect(() => {
     if (walletState !== 'ready' || !selectedWalletId || !shouldAutoConnect() || autoConnectAttemptedRef.current) return;
@@ -588,9 +638,9 @@ export function useMidnight(): UseMidnightReturn {
   }, []);
 
   const refreshBoard = useCallback(async (): Promise<BoardView | null> => {
-    const boardAddress = getBoardContractAddress();
+    const boardAddress = getBoardContractAddress(mode);
     if (!boardAddress) return null;
-    const boardState = await fetchBoardState(boardAddress);
+    const boardState = await fetchBoardState(boardAddress, mode);
     if (boardState) {
       setBounties(boardState.bounties);
       setSubmissions(boardState.submissions);
@@ -598,7 +648,7 @@ export function useMidnight(): UseMidnightReturn {
       setBoardStats(boardState.stats);
     }
     return boardState;
-  }, []);
+  }, [mode]);
 
   const runBoardCircuit = useCallback(
     async (
@@ -647,7 +697,7 @@ export function useMidnight(): UseMidnightReturn {
   );
   const submitReport = useCallback(
     async (bountyId: bigint): Promise<{ submissionId: bigint; txId: string } | null> => {
-      if (isTransparentDemoMode) {
+      if (isTransparentMode(mode)) {
         const run = await runBoardCircuit('submitReport', bountyId);
         if (!run.ok || typeof run.result !== 'bigint' || !run.txId) return null;
         return { submissionId: run.result, txId: run.txId };
@@ -657,21 +707,21 @@ export function useMidnight(): UseMidnightReturn {
       if (!run.ok || typeof run.result !== 'bigint' || !run.txId) return null;
       return { submissionId: run.result, txId: run.txId };
     },
-    [runBoardCircuit],
+    [runBoardCircuit, mode],
   );
   const resolveSubmission = useCallback(
     (submissionId: bigint, outcome: number, payoutAmount = 0n): Promise<boolean> => {
-      if (isTransparentDemoMode) {
+      if (isTransparentMode(mode)) {
         return runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome), payoutAmount).then(({ ok }) => ok);
       }
       const payoutCoin = encodeShieldedCoinInfo(createShieldedCoinInfo(nativeToken().raw, payoutAmount));
       return runBoardCircuit('resolveSubmission', submissionId, BigInt(outcome), payoutCoin).then(({ ok }) => ok);
     },
-    [runBoardCircuit],
+    [runBoardCircuit, mode],
   );
   const claimPayout = useCallback(
     async (submissionId: bigint, payoutCoin: QualifiedShieldedCoinInfo | string): Promise<boolean> => {
-      if (isTransparentDemoMode) {
+      if (isTransparentMode(mode)) {
         if (typeof payoutCoin !== 'string') return false;
         const compactAddress = toCompactUserAddress(payoutCoin);
         return runBoardCircuit('claimPayout', submissionId, { bytes: encodeUserAddress(compactAddress) }).then(({ ok }) => ok);
@@ -679,7 +729,7 @@ export function useMidnight(): UseMidnightReturn {
       if (typeof payoutCoin === 'string') return false;
       return runBoardCircuit('claimPayout', submissionId, encodeQualifiedShieldedCoinInfo(payoutCoin)).then(({ ok }) => ok);
     },
-    [runBoardCircuit],
+    [runBoardCircuit, mode],
   );
   const updateBounty = useCallback(
     (id: bigint, amount: bigint, deadline: bigint) =>

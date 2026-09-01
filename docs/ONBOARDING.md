@@ -4,7 +4,7 @@ Send this to each consenting tester individually.
 
 1. Install a compatible Midnight wallet such as Lace or 1AM and switch it to Midnight Preprod.
 2. Open the live demo: <https://an0n1ty.vercel.app/>.
-3. Read the banner. The current recording deployment is transparent demo mode; it is not the privacy deployment.
+3. Keep the app in Shielded mode by default. If your wallet does not have shielded NIGHT, use the transaction-mode toggle beside Connect Wallet and explicitly confirm the unshielded testing fallback in the alert.
 4. Connect the wallet and approve the connection request.
 5. As an organization, create a test bounty; or as a hunter, enter the local hunter flow and back up the generated key.
 6. Complete one test action only if you understand the testnet fee and payment behavior shown in the UI.

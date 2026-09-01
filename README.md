@@ -25,7 +25,7 @@ Connect your wallet and use the Anonity bounty board live on Preprod.
 | Network  | Address                                                                 |
 |----------|-------------------------------------------------------------------------|
 | Preprod (Anonity shielded bounty core) | `5f5cc5813ecfb6cbd2b36466931c4cf337271eb22827667fe28e6cb5270d96d9` |
-| Preprod (recording-only transparent demo) | `aa13d75c72f51bb87fa9af3f5e510da302e50d3f97bde33679879d2478130ad4` |
+| Preprod (unshielded testing fallback) | `aa13d75c72f51bb87fa9af3f5e510da302e50d3f97bde33679879d2478130ad4` |
 | Preprod (counter, L2 demo)     | `63bfa0aec1cd8f8a768487dfd72fa5fc5e90bc311c9873006af30b694ab8cd7b` |
 | Preview (counter, L1)          | `8aab69118bde5a18cae92def5d7a933e3c3059998619242285ea7d34b5b1abb8` |
 
@@ -37,7 +37,7 @@ Bug bounty platforms have an identity problem. Security researchers must disclos
 
 **Anonity** fixes both sides. Organizations post bounties; researchers submit vulnerability reports anonymously; every submission carries a 5 NIGHT anti-spam fee received as a shielded contract output. Report content and triage messages are sealed in the browser for the organization and the hunter separately. Payment rights are proof-gated, not account-gated.
 
-The current public recording link is configured for the separately deployed transparent demo contract because many test wallets do not have shielded NIGHT. The yellow banner is intentional: that deployment is useful for demonstrating the product flow, but it is not the privacy-preserving deployment described above.
+The public app defaults to the shielded contract. Testers who do not have shielded NIGHT can switch to the unshielded contract from the transaction-mode toggle beside Connect Wallet. An alert requires an explicit confirmation before that switch; unshielded transactions are not anonymous.
 
 This repo ships the privacy core of **Anonity**: the bounty contract (`contracts/anonity.compact`) with program posting, anonymous submission with shielded fee escrow, org-only resolution across three outcomes, and a proof-gated shielded payout claim circuit — plus a React frontend wired to Preprod. The configured Supabase project has the private-report schema applied. The final qualified-coin handoff for claim UX, updated-contract redeployment, and end-to-end wallet/privacy tests are still required before this is presented as production-ready.
 
@@ -125,7 +125,7 @@ The function uses the public Midnight indexer to verify a finalized `submitRepor
 
 Deployment state and wallet seeds stay in the ignored `.midnight-state.json` file. Never commit that file or paste its contents into documentation, issues, or logs.
 
-### Recording-only transparent demo
+### Unshielded testing fallback
 
 For a temporary recording when the wallet has no shielded NIGHT, deploy the isolated transparent contract:
 
@@ -133,14 +133,13 @@ For a temporary recording when the wallet has no shielded NIGHT, deploy the isol
 npm run deploy:anonity-demo
 ```
 
-Set these Vercel build-time variables for the recording deployment:
+Configure both contract addresses as Vercel build-time variables:
 
 ```text
-VITE_PAYMENT_MODE=unshielded-demo
 VITE_ANONITY_DEMO_CONTRACT=<printed-demo-address>
 ```
 
-Keep `VITE_ANONITY_CONTRACT` set to the normal shielded contract. The demo contract uses transparent unshielded NIGHT for the 5 NIGHT submission fee and valid payout; this mode is not privacy-preserving and must not be presented as the production privacy deployment. Set `VITE_PAYMENT_MODE` back to `shielded` (or remove it) when recording is complete.
+Keep `VITE_ANONITY_CONTRACT` set to the normal shielded contract. The app selects this contract by default and switches to `VITE_ANONITY_DEMO_CONTRACT` only after the user confirms the unshielded testing fallback. The fallback uses transparent unshielded NIGHT for the 5 NIGHT submission fee and valid payout; it is not anonymous.
 
 The `store-report` Edge Function must also be redeployed with `ANONITY_DEMO_CONTRACT_ADDRESS` set to the demo address. It accepts only the configured shielded and demo contract addresses while keeping report content encrypted.
 

@@ -24,4 +24,4 @@ Anonymous bug bounties on Midnight. Prove the report, keep the identity. Preprod
 
 ## X banner concept
 
-A near-black technical grid with a single cyan proof path passing through redacted identity blocks. Use the yellow only for a small “DEMO / TRANSPARENT” label when showing the recording deployment.
+A near-black technical grid with a single cyan proof path passing through redacted identity blocks. Use the yellow only for the explicit unshielded-mode confirmation action.

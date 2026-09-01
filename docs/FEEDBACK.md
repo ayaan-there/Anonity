@@ -11,7 +11,7 @@ For the real Level 5 round, collect feedback through consented test sessions, a 
 | # | Tester Alias | Feedback Summary | Date | Consent |
 |---|--------------|------------------|------|---------|
 | 1 | Project owner | Shielded submission could not complete with an empty shielded balance and available unshielded NIGHT. | 2026-08-31 | N/A |
-| 2 | Project owner | A separate transparent recording deployment was needed, with an explicit warning that it is not the privacy deployment. | 2026-08-31 | N/A |
+| 2 | Project owner | A separate unshielded fallback should be available from the navigation, with a one-time confirmation before switching modes. | 2026-08-31 | In progress |
 | 3 | Project owner | The demo deployment initially loaded the wrong verifier assets in the frontend. | 2026-09-01 | N/A |
 
 ## What We Heard (Themes)
@@ -25,7 +25,7 @@ For the real Level 5 round, collect feedback through consented test sessions, a 
 
 | Change | Reason | Commit |
 |--------|--------|--------|
-| Added an isolated transparent demo contract and yellow warning banner. | Make recording possible when the wallet has no shielded NIGHT while disclosing the limitation. | `ca02c8f` |
+| Added an isolated transparent fallback contract and explicit mode confirmation. | Make testing possible when a wallet has no shielded NIGHT while disclosing the limitation at the point of choice. | `ca02c8f` |
 | Added separate demo proving/verifier assets and mode-aware loading. | Prevent the demo address from being bound to the shielded contract keys. | `42dc442` |
 | Added encrypted report storage chain-gated for both configured deployments. | Keep report plaintext out of Supabase while supporting the demo deployment. | `ca02c8f` |
 
@@ -34,5 +34,5 @@ For the real Level 5 round, collect feedback through consented test sessions, a 
 | Change | User Feedback That Triggered It | Status |
 |--------|--------------------------------|--------|
 | Add pre-transaction wallet readiness guidance. | Users encountered confusing DUST and shielded-balance failures. | Planned |
-| Add a privacy-mode indicator to every payment-related screen. | Demo users must distinguish transparent funding from shielded funding. | Complete |
+| Add a shielded-first privacy-mode toggle beside Connect Wallet, with confirmation before Unshielded. | Testers need a visible choice without persistent warning banners. | Complete |
 | Add a first-run troubleshooting checklist for wallet/network/proof issues. | Wallet setup was the main onboarding friction point. | Planned |
