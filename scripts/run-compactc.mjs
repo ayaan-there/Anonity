@@ -14,7 +14,8 @@ const candidates = [
 let lastError;
 for (const command of candidates) {
   try {
-    execFileSync(command, args, { stdio: 'inherit' });
+    const compilerArgs = command === 'compact' ? ['compile', ...args] : args;
+    execFileSync(command, compilerArgs, { stdio: 'inherit' });
     process.exit(0);
   } catch (error) {
     if (error?.code !== 'ENOENT') process.exit(error?.status ?? 1);
