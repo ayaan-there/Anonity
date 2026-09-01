@@ -1,8 +1,12 @@
 import { execFileSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
+// The current Compact installer exposes the compiler as `compact` on Linux.
+// Windows already ships an unrelated `compact.exe`, so never invoke that
+// command accidentally; use an explicit COMPACTC path or compactc there.
 const candidates = [
   process.env.COMPACTC,
+  ...(process.platform === 'win32' ? [] : ['compact']),
   'compactc',
   '/root/.compact/versions/0.31.1/x86_64-unknown-linux-musl/compactc',
 ].filter(Boolean);
